@@ -25,7 +25,7 @@ class Args:
         self.model = "Transformer"
         self.batch_size = 20;
         self.lr = 20
-        self.epochs = 10
+        self.epochs = 40
         # sequence length
         self.bptt = 35
         self.clip = 0.25
@@ -178,7 +178,7 @@ def complete(text: str):
 #            output, hidden = model(data, hidden)
 #            hidden = repackage_hidden(hidden)
 
-def train():
+def train(epoch, lr):
     # Turn on training mode which enables dropout.
     model.train()
     total_loss = 0.
@@ -203,7 +203,7 @@ def train():
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         for p in model.parameters():
-            p.data.add_(p.grad, alpha=-lr)
+            p.data.add_(p.grad, alpha=-args.lr)
 
         total_loss += loss.item()
 
@@ -228,16 +228,17 @@ def export_onnx(path, batch_size, seq_len):
     torch.onnx.export(model, (dummy_input, hidden), path)
 
 
+
 def trainEpoc(): 
     # Loop over epochs.
-    lr = args.lr
     best_val_loss = None
+    lr = args.lr
 
     # At any point you can hit Ctrl + C to break out of training early.
     try:
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
-            train()
+            train(epoch, lr)
             val_loss = evaluate(val_data)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
@@ -256,7 +257,8 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = False
+runTrain = True
+runTest = False
 
 if runTrain:
     trainEpoc()
@@ -270,7 +272,7 @@ with open(args.save, 'rb') as f:
     if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
         model.rnn.flatten_parameters()
 
-if runTrain:
+if runTest:
     # Run on test data.
     test_loss = evaluate(test_data)
     print('=' * 89)

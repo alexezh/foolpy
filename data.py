@@ -63,6 +63,22 @@ class Corpus(object):
         makeSumDigit(full)
         makeSumNumber(full)
 
+        makeIsDigit(full)
+        makeIsNumber(full)
+        makeSumDigit(full)
+        makeSumNumber(full)
+
+        makeIsDigit(full)
+        makeIsNumber(full)
+        makeSumDigit(full)
+        makeSumNumber(full)
+
+        makeIsDigit(full)
+        makeIsNumber(full)
+        makeSumDigit(full)
+        makeSumNumber(full)
+
+        random.seed(a=42)
         train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
         valid = random.sample(full, math.floor(len(full) * 0.15))  # Randomly select 3 elements
         test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
