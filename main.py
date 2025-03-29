@@ -26,11 +26,14 @@ class Args:
         self.batch_size = 20;
         self.lr = 20
         self.epochs = 10
+        # sequence length
         self.bptt = 35
         self.clip = 0.25
         self.log_interval = 10
         self.dry_run = False
         self.save = "model.pt"
+        self.onnx_export = False
+        self.temperature = 1.0
 
 args = Args();
 
@@ -141,6 +144,39 @@ def evaluate(data_source):
             total_loss += len(data) * criterion(output, targets).item()
     return total_loss / (len(data_source) - 1)
 
+def complete(text: str):
+    input = corpus.tokenize([text]);
+    input = input.reshape(-1, 1)
+
+    # source = batchify(tokens, 1)
+
+    # torch.tensor([tokens])
+
+    # Turn on evaluation mode which disables dropout.
+    model.eval()
+    total_loss = 0.
+    ntokens = len(corpus.dictionary)
+
+    with torch.no_grad():
+       for i in range(10):
+                # data, targets = get_batch(source, 0)
+#        if args.model == 'Transformer':
+            output = model(input, False)
+            output = output.view(-1, ntokens)
+
+            word_weights = output[-1].squeeze().div(args.temperature).exp().cpu()
+            word_idx = torch.multinomial(word_weights, 1)[0]
+            word_tensor = torch.Tensor([[word_idx]]).long().to(device)
+            
+            input = torch.cat([input, word_tensor], 0)
+
+            w = corpus.dictionary.idx2word[word_idx]
+            print(w);
+
+
+#        else:
+#            output, hidden = model(data, hidden)
+#            hidden = repackage_hidden(hidden)
 
 def train():
     # Turn on training mode which enables dropout.
@@ -192,32 +228,38 @@ def export_onnx(path, batch_size, seq_len):
     torch.onnx.export(model, (dummy_input, hidden), path)
 
 
-# Loop over epochs.
-lr = args.lr
-best_val_loss = None
+def trainEpoc(): 
+    # Loop over epochs.
+    lr = args.lr
+    best_val_loss = None
 
-# At any point you can hit Ctrl + C to break out of training early.
-try:
-    for epoch in range(1, args.epochs+1):
-        epoch_start_time = time.time()
-        train()
-        val_loss = evaluate(val_data)
+    # At any point you can hit Ctrl + C to break out of training early.
+    try:
+        for epoch in range(1, args.epochs+1):
+            epoch_start_time = time.time()
+            train()
+            val_loss = evaluate(val_data)
+            print('-' * 89)
+            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+                    'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
+                                            val_loss, math.exp(val_loss)))
+            print('-' * 89)
+            # Save the model if the validation loss is the best we've seen so far.
+            if not best_val_loss or val_loss < best_val_loss:
+                with open(args.save, 'wb') as f:
+                    torch.save(model.state_dict(), f)
+                best_val_loss = val_loss
+            else:
+                # Anneal the learning rate if no improvement has been seen in the validation dataset.
+                lr /= 4.0
+    except KeyboardInterrupt:
         print('-' * 89)
-        print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
-                                           val_loss, math.exp(val_loss)))
-        print('-' * 89)
-        # Save the model if the validation loss is the best we've seen so far.
-        if not best_val_loss or val_loss < best_val_loss:
-            with open(args.save, 'wb') as f:
-                torch.save(model.state_dict(), f)
-            best_val_loss = val_loss
-        else:
-            # Anneal the learning rate if no improvement has been seen in the validation dataset.
-            lr /= 4.0
-except KeyboardInterrupt:
-    print('-' * 89)
-    print('Exiting from training early')
+        print('Exiting from training early')
+
+runTrain = False
+
+if runTrain:
+    trainEpoc()
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
@@ -228,17 +270,19 @@ with open(args.save, 'rb') as f:
     if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
         model.rnn.flatten_parameters()
 
-# Run on test data.
-test_loss = evaluate(test_data)
-print('=' * 89)
-print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
-    test_loss, math.exp(test_loss)))
-print('=' * 89)
+if runTrain:
+    # Run on test data.
+    test_loss = evaluate(test_data)
+    print('=' * 89)
+    print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
+        test_loss, math.exp(test_loss)))
+    print('=' * 89)
 
-if len(args.onnx_export) > 0:
-    # Export the model in ONNX format.
-    export_onnx(args.onnx_export, batch_size=1, seq_len=args.bptt)
-
+    if len(args.onnx_export) > 0:
+        # Export the model in ONNX format.
+        export_onnx(args.onnx_export, batch_size=1, seq_len=args.bptt)
+else:
+    complete("40 + 22 is")
 
 
 
