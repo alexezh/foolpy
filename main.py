@@ -284,7 +284,7 @@ if runTest:
         # Export the model in ONNX format.
         export_onnx(args.onnx_export, batch_size=1, seq_len=args.bptt)
 else:
-    complete("40 + 22 is")
+    complete("4 + 2 is")
 
 
 

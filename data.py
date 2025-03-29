@@ -52,34 +52,38 @@ def makeSumNumber(o: List[str]):
         b2 = b - b1;
         o.append(f"{a} + {b} is {a1} + {a2} + {b1} + {b2} is {a1} + {b1} + {a2 + b2} is { a + b }");
          
-
 class Corpus(object):
     def __init__(self):
         self.dictionary = Dictionary()
         
-        full = []
-        makeIsDigit(full)
-        makeIsNumber(full)
-        makeSumDigit(full)
-        makeSumNumber(full)
+        self.dictionary.add_word('<eos>');
+        self.dictionary.add_word('number');
+        self.dictionary.add_word('digit');
+        self.dictionary.add_word('is');
+        self.dictionary.add_word('+');
+        self.dictionary.add_word('0');
+        self.dictionary.add_word('1');
+        self.dictionary.add_word('2');
+        self.dictionary.add_word('3');
+        self.dictionary.add_word('4');
+        self.dictionary.add_word('5');
+        self.dictionary.add_word('6');
+        self.dictionary.add_word('7');
+        self.dictionary.add_word('8');
+        self.dictionary.add_word('9');
 
-        makeIsDigit(full)
-        makeIsNumber(full)
-        makeSumDigit(full)
-        makeSumNumber(full)
+        basic = []
+        makeIsDigit(basic)
+        makeIsNumber(basic)
+        makeSumDigit(basic)
 
-        makeIsDigit(full)
-        makeIsNumber(full)
-        makeSumDigit(full)
-        makeSumNumber(full)
-
-        makeIsDigit(full)
-        makeIsNumber(full)
-        makeSumDigit(full)
+        full = [];
         makeSumNumber(full)
 
         random.seed(a=42)
         train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
+        train.extend(basic);
+
         valid = random.sample(full, math.floor(len(full) * 0.15))  # Randomly select 3 elements
         test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
 
@@ -89,18 +93,21 @@ class Corpus(object):
 
     def tokenize(self, exp: List[str]):
       """Tokenizes a text file."""
-      for line in exp:
-          words = line.split() + ['<eos>']
-          for word in words:
-              self.dictionary.add_word(word)
 
       # Tokenize file content
       idss = []
       for line in exp:
-          words = line.split() + ['<eos>']
           ids = []
+          words = line.split()
           for word in words:
-              ids.append(self.dictionary.word2idx[word])
+            idx = self.dictionary.word2idx.get(word);
+            if idx == None:
+             for c in word:
+                ids.append(self.dictionary.word2idx[c])
+            else:
+               ids.append(idx);
+          
+          ids.append(self.dictionary.word2idx['<eos>'])
           idss.append(torch.tensor(ids).type(torch.int64))
       ids = torch.cat(idss)
 
