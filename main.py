@@ -24,6 +24,13 @@ class Args:
         self.mps = False;
         self.model = "Transformer"
         self.batch_size = 20;
+        self.lr = 20
+        self.epochs = 10
+        self.bptt = 35
+        self.clip = 0.25
+        self.log_interval = 10
+        self.dry_run = False
+        self.save = "model.pt"
 
 args = Args();
 
@@ -203,7 +210,7 @@ try:
         # Save the model if the validation loss is the best we've seen so far.
         if not best_val_loss or val_loss < best_val_loss:
             with open(args.save, 'wb') as f:
-                torch.save(model, f)
+                torch.save(model.state_dict(), f)
             best_val_loss = val_loss
         else:
             # Anneal the learning rate if no improvement has been seen in the validation dataset.
@@ -214,7 +221,7 @@ except KeyboardInterrupt:
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
-    model = torch.load(f)
+    model.load_state_dict(torch.load(f))
     # after load the rnn params are not a continuous chunk of memory
     # this makes them a continuous chunk, and will speed up forward pass
     # Currently, only rnn model supports flatten_parameters function.
