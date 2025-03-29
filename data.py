@@ -63,9 +63,9 @@ class Corpus(object):
         makeSumDigit(full)
         makeSumNumber(full)
 
-        train = random.sample(full, math.round(len(full) * 0.7))  # Randomly select 3 elements
-        valid = random.sample(full, math.round(len(full) * 0.15))  # Randomly select 3 elements
-        test = random.sample(full, math.round(len(full) * 0.20))  # Randomly select 3 elements
+        train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
+        valid = random.sample(full, math.floor(len(full) * 0.15))  # Randomly select 3 elements
+        test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
 
         self.train = self.tokenize(train)
         self.valid = self.tokenize(valid)
