@@ -2,95 +2,70 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-class CustomTransformer(nn.Module):
-    class CustomTransformer(nn.Module):
-    def __init__(self, input_dim, embed_dim, num_heads, ff_dim, num_layers, output_dim, max_seq_length):
-        super(CustomTransformer, self).__init__()
+import model;
+import data;
 
-        self.embedding = nn.Embedding(input_dim, embed_dim)
-        self.positional_encoding = nn.Parameter(torch.randn(1, max_seq_length, embed_dim))
+# code is based on
+# https://github.com/pytorch/examples/blob/main/word_language_model/main.py
 
-        self.encoder_layer = nn.TransformerEncoderLayer(d_model=embed_dim, nhead=num_heads, dim_feedforward=ff_dim)
-        self.encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=num_layers)
+emsize = 200;
+nhead = 2;
+nhid = 200;
+nlayers = 2;
+dropout = 0.2;
+batch_size = 20;
+seed = 42;
+cuda = False;
+mps = False;
 
-        self.decoder_layer = nn.TransformerDecoderLayer(d_model=embed_dim, nhead=num_heads, dim_feedforward=ff_dim)
-        self.decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=num_layers)
+# Set the random seed manually for reproducibility.
+torch.manual_seed(seed)
+if torch.cuda.is_available():
+    if not cuda:
+        print("WARNING: You have a CUDA device, so you should probably run with --cuda.")
+if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    if not mps:
+        print("WARNING: You have mps device, to enable macOS GPU run with --mps.")
 
-        self.fc_out = nn.Linear(embed_dim, output_dim)
-
-    def forward(self, src, tgt):
-        src = self.embedding(src) + self.positional_encoding[:, :src.size(1), :]
-        tgt = self.embedding(tgt) + self.positional_encoding[:, :tgt.size(1), :]
-
-        memory = self.encoder(src)
-        output = self.decoder(tgt, memory)
-        output = self.fc_out(output)
-        return output
-
-    def predict(self, src, max_length=20, start_token=1):
-        """ Generate predictions given input sequence """
-        src = self.embedding(src) + self.positional_encoding[:, :src.size(1), :]
-        memory = self.encoder(src)
-
-        # Start with the start token
-        tgt = torch.full((src.size(0), 1), start_token, dtype=torch.long, device=src.device)
-
-        for _ in range(max_length):
-            tgt_emb = self.embedding(tgt) + self.positional_encoding[:, :tgt.size(1), :]
-            output = self.decoder(tgt_emb, memory)
-            output = self.fc_out(output)
-
-            # Get the last token prediction
-            next_token = output.argmax(dim=-1)[:, -1].unsqueeze(-1)
-            tgt = torch.cat((tgt, next_token), dim=1)
-
-        return tgt
-    
-# Define hyperparameters
-input_dim = output_dim = 10000  # Vocabulary size
-embed_dim = 512
-num_heads = 8
-ff_dim = 2048
-num_layers = 6
-max_seq_length = 100
-
-# Initialize model
-model = CustomTransformer(input_dim, embed_dim, num_heads, ff_dim, num_layers, output_dim, max_seq_length)
-print(model)
+use_mps = mps and torch.backends.mps.is_available()
+if cuda:
+    device = torch.device("cuda")
+elif use_mps:
+    device = torch.device("mps")
+else:
+    device = torch.device("cpu")
 
 
-# Dummy data
-src = torch.randint(0, 10000, (10, 20))  # (batch_size, sequence_length)
-tgt = torch.randint(0, 10000, (10, 20))
+corpus = data.Corpus()
 
-# Move to device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
-src, tgt = src.to(device), tgt.to(device)
+# Starting from sequential data, batchify arranges the dataset into columns.
+# For instance, with the alphabet as the sequence and batch size 4, we'd get
+# ┌ a g m s ┐
+# │ b h n t │
+# │ c i o u │
+# │ d j p v │
+# │ e k q w │
+# └ f l r x ┘.
 
-# Define loss and optimizer
-criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+# These columns are treated as independent by the model, which means that the
+# dependence of e. g. 'g' on 'f' can not be learned, but allows more efficient
+# batch processing.
+def batchify(data, bsz):
+    # Work out how cleanly we can divide the dataset into bsz parts.
+    nbatch = data.size(0) // bsz
+    # Trim off any extra elements that wouldn't cleanly fit (remainders).
+    data = data.narrow(0, 0, nbatch * bsz)
+    # Evenly divide the data across the bsz batches.
+    data = data.view(bsz, -1).t().contiguous()
+    return data.to(device)
 
-# Training step
-for epoch in range(5):  # Small number of epochs for testing
-    optimizer.zero_grad()
-    output = model(src, tgt)
-    loss = criterion(output.view(-1, output_dim), tgt.view(-1))  # Reshape for loss calculation
-    loss.backward()
-    optimizer.step()
-    print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
+batch_size = 20;
+eval_batch_size = 10;
+train_data = batchify(corpus.train, batch_size)
+val_data = batchify(corpus.valid, eval_batch_size)
+test_data = batchify(corpus.test, eval_batch_size)
 
-# predict
-# Define dummy input (batch_size=1, sequence_length=10)
-src_input = torch.randint(0, 10000, (1, 10))
 
-# Move model and input to device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model.to(device)
-src_input = src_input.to(device)
 
-# Generate output sequence
-predicted_output = model.predict(src_input, max_length=15, start_token=2)
 
-print("Predicted Sequence:", predicted_output)
+
