@@ -41,17 +41,23 @@ def makeBasicVar(o: List[str]):
     o.append(f"a + {a} is a + {a}");
     o.append(f"b + {a} is b + {a}");
     o.append(f"c + {a} is c + {a}");
+  o.append(f"a + b is b + a");
+  o.append(f"a + b is a + b");
   o.append(f"c + a is c + a");
+  o.append(f"c + a is a + c");
+
+def randNum(max, other):
+  while True:
+    val = random.randint(0, max)
+    if val != other:
+      return val
 
 def makeSumDigitWrong(o: List[str]):
   for a in range(0, 9):
     for b in range(0, 9):
       for n in range(0, 10):
-        while True:
-          val = random.randint(0, 9)
-          if val != a + b:
-            o.append(f"{a} + {b} is {val} wrong {a} + {b} is {a + b}");
-            break
+        o.append(f"{a} + {b} is {randNum(9, a + b)} wrong {a} + {b} is {a + b}");
+        break
 
 def makeMinDigit(o: List[str]):
   for a in range(0, 9):
@@ -102,6 +108,12 @@ def makeSumDigit3(o: List[str]):
       for c in range(0, 9):
         o.append(f"{a} + {b} + {c} is {a + b} + {c} is { a + b + c }");
         o.append(f"{a} + {b} + {c} is {a} + {b + c} is { a + b + c }");
+        o.append(f"a + {a} + {b} + {c} is {a} + {b + c} is a + { a + b + c }");
+        o.append(f"b + {a} + {b} + {c} is {a} + {b + c} is b + { a + b + c }");
+        o.append(f"c + {a} + {b} + {c} is {a} + {b + c} is c + { a + b + c }");
+        o.append(f"a + {a} + {b} + c + {c} is {a} + {b + c} is a + c + { a + b + c }");
+        o.append(f"b + {a} + {b} + a + {c} is {a} + {b + c} is a + b + { a + b + c }");
+        o.append(f"c + {a} + {b} + b + {c} is {a} + {b + c} is c + b + { a + b + c }");
 
 def makeSumDigit4(o: List[str]):
   for a in range(0, 9):
@@ -111,6 +123,26 @@ def makeSumDigit4(o: List[str]):
           o.append(f"{a} + {b} + {c} + {d} is {a + b} + {c} + {d} is {a + b + c} + {d} is { a + b + c + d }");
           o.append(f"{a} + {b} + {c} + {d} is {a} + {b} + {c + d} is {a} + {b + c + d} is { a + b + c + d }");
           o.append(f"{a} + {b} + {c} + {d} is {a} + {b + c} + {d} is {a} + {b + c + d} is { a + b + c + d }");
+
+          # o.append(f"{a} + {b} + {c} + {d} is {a + b} + {c} + {d} is {a + b + c} + {d} is {randNum(9, a + b + c + d)} is { a + b + c + d }");
+          # o.append(f"{a} + {b} + {c} + {d} is {a} + {b} + {c + d} is {a} + {b + c + d} is {randNum(9, a + b + c + d)} is { a + b + c + d }");
+          # o.append(f"{a} + {b} + {c} + {d} is {a} + {b + c} + {d} is {a} + {b + c + d} is {randNum(9, a + b + c + d)} is { a + b + c + d }");
+
+          # o.append(f"{a} + {b} + {c} + {d} is {randNum(9, a + b)} + {c} + {d} is {a + b} + {c} + {d} is {a + b + c} + {d} is { a + b + c + d }");
+          # o.append(f"{a} + {b} + {c} + {d} is {a} + {b} + {randNum(9, c + d)} wrong is {a} + {b} + {c + d} is {a} + {b + c + d} is { a + b + c + d }");
+          # o.append(f"{a} + {b} + {c} + {d} is {a} + {randNum(9, b + c)} + {d} wrong is {a} + {b + c} + {d} is {a} + {b + c + d} is { a + b + c + d }");
+
+def makeSumDigit5(o: List[str]):
+  for a in range(0, 9):
+    for b in range(0, 9):
+      for c in range(0, 9):
+        for d in range(0, 9):
+          for e in range(0, 9):
+            o.append(f"{a} + {b} + {c} + {d} + {e} is {a + b} + {c} + {d} + {e} is {a + b + c} + {d} + {e} is { a + b + c + d + e }");
+            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b + c} + {d} + {e} is {a + b + c} + {d} + {e} is { a + b + c + d + e }");
+            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b + c} + {d} + {e} is {a} + {b + c + d + e} is { a + b + c + d + e }");
+            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b} + {c + d} + {e} is {a} + {b + c + d + e} is { a + b + c + d + e }");
+            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b} + {c} + {d + e} is {a} + {b + c + d + e} is { a + b + c + d + e }");
 
 class Corpus(object):
     def __init__(self):
@@ -150,6 +182,7 @@ class Corpus(object):
         makeSumNumber2(full)
         makeSumDigit3(full);
         makeSumDigit4(full)
+        makeSumDigit5(full);
 
         random.seed(a=42)
         train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
