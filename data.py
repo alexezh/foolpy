@@ -19,51 +19,27 @@ class Dictionary(object):
     def __len__(self):
         return len(self.idx2word)
 
-def makeIsDigit(o: List[str]):
-  for v in range(0, 9):
-    o.append(f"{v} is digit");
-  for v in range(0, 9):
-    o.append(f"{v} is {v}");
-
-def makeIsNumber(o: List[str]):
-  for v in range(0, 100):
-    o.append(f"{v} is number");
-  for v in range(0, 100):
-    o.append(f"{v} is {v}");
-
-def makeSumDigit(o: List[str]):
-  for a in range(0, 9):
-    for b in range(0, 9):
-      o.append(f"{a} + {b} is {a + b}");
-
-def makeBasicVar(o: List[str]):
-  for a in range(0, 9):
-    o.append(f"a + {a} is a + {a}");
-    o.append(f"b + {a} is b + {a}");
-    o.append(f"c + {a} is c + {a}");
-  o.append(f"a + b is b + a");
-  o.append(f"a + b is a + b");
-  o.append(f"c + a is c + a");
-  o.append(f"c + a is a + c");
-
 def randNum(max, other):
   while True:
     val = random.randint(0, max)
     if val != other:
       return val
 
-def makeSumDigitWrong(o: List[str]):
-  for a in range(0, 9):
-    for b in range(0, 9):
-      for n in range(0, 10):
-        o.append(f"{a} + {b} is {randNum(9, a + b)} wrong {a} + {b} is {a + b}");
-        break
+vars = ['a', 'b', 'c'];
 
-def makeMinDigit(o: List[str]):
+def makeBasic(o: List[str]):
   for a in range(0, 9):
     for b in range(0, 9):
-      if a >= b:
-        o.append(f"{a} - {b} is {a - b}");
+      o.append(f"{a} + {b} => #{a} #+ #{b}");
+      o.append(f"{a} - {b} => #{a} #- #{b}");
+
+  for a in range(0, 9):
+    o.append(f"{a} => none");
+
+  for v1 in vars:
+    for v2 in vars:
+      if v1 != v2:
+        o.append(f"{v1} + {v2} => none");
 
 def makeSumNumber(o: List[str]):
   for a in range(0, 99):
@@ -85,70 +61,62 @@ def makeSumNumber(o: List[str]):
         b2 = b - b1;
         o.append(f"{a} + {b} is {a1} + {a2} + {b1} + {b2} is {a1} + {b1} + {a2 + b2} is { a + b }");
          
-def makeSumNumber2(o: List[str]):
+def makeSums(o: List[str]):
   for a in range(0, 99):
     for b in range(0, 99):
       if a + b > 99 or (a < 10 and b < 10): 
          continue
-      o.append(f"{a} + {b} is { a + b }");
+      o.append(f"{a} + {b} => #{a} #+ #{b}");
 
-def makeSumVar2(o: List[str]):
   for a in range(0, 99):
     for b in range(0, 99):
-      o.append(f"a + {a} + {b} is a + { a + b }");
-      o.append(f"b + {a} + {b} is b + { a + b }");
-      o.append(f"c + {a} + {b} is c + { a + b }");
-      o.append(f"{a} + a + {b} is a + { a + b }");
-      o.append(f"{a} + b + {b} is b + { a + b }");
-      o.append(f"{a} + c + {b} is c + { a + b }");
+      for v in vars:
+        o.append(f"{v} + {a} + {b} => {v} + #{a} #+ #{b}");
+        o.append(f"{a} + {v} + {b} => #{a} + {v} #+ #{b}");
+        o.append(f"{a} + {b} + {v} => #{a} #+ #{b} + {v}");
 
-def makeSumDigit3(o: List[str]):
   for a in range(0, 9):
     for b in range(0, 9):
       for c in range(0, 9):
-        o.append(f"{a} + {b} + {c} is {a + b} + {c} is { a + b + c }");
-        o.append(f"{a} + {b} + {c} is {a} + {b + c} is { a + b + c }");
-        o.append(f"a + {a} + {b} + {c} is {a} + {b + c} is a + { a + b + c }");
-        o.append(f"b + {a} + {b} + {c} is {a} + {b + c} is b + { a + b + c }");
-        o.append(f"c + {a} + {b} + {c} is {a} + {b + c} is c + { a + b + c }");
-        o.append(f"a + {a} + {b} + c + {c} is {a} + {b + c} is a + c + { a + b + c }");
-        o.append(f"b + {a} + {b} + a + {c} is {a} + {b + c} is a + b + { a + b + c }");
-        o.append(f"c + {a} + {b} + b + {c} is {a} + {b + c} is c + b + { a + b + c }");
+        o.append(f"{a} + {b} + {c} => #{a} #+ #{b} + {c}");
+        o.append(f"{a} + {b} + {c} => {a} + #{b} #+ {c}");
+        o.append(f"a + {a} + {b} + {c} => {a} + {b + c}");
 
-def makeSumDigit4(o: List[str]):
+  for a in range(0, 9):
+    for b in range(0, 9):
+      for c in range(0, 9):
+        for v in ['a', 'b', 'c']:
+          o.append(f"{v} + {a} + {b} + {c} => {v} + {a} + #{b} #+ #{c}");
+
   for a in range(0, 9):
     for b in range(0, 9):
       for c in range(0, 9):
         for d in range(0, 9):
-          o.append(f"{a} + {b} + {c} + {d} is {a + b} + {c} + {d} is {a + b + c} + {d} is { a + b + c + d }");
-          o.append(f"{a} + {b} + {c} + {d} is {a} + {b} + {c + d} is {a} + {b + c + d} is { a + b + c + d }");
-          o.append(f"{a} + {b} + {c} + {d} is {a} + {b + c} + {d} is {a} + {b + c + d} is { a + b + c + d }");
+          o.append(f"{a} + {b} + {c} + {d} => #{a} + #{b} + {c} + {d}");
+          o.append(f"{a} + {b} + {c} + {d} => {a} + {b} + #{c} #+ #{d}");
+          o.append(f"{a} + {b} + {c} + {d} => {a} + #{b} #+ #{c} + {d}");
 
-          # o.append(f"{a} + {b} + {c} + {d} is {a + b} + {c} + {d} is {a + b + c} + {d} is {randNum(9, a + b + c + d)} is { a + b + c + d }");
-          # o.append(f"{a} + {b} + {c} + {d} is {a} + {b} + {c + d} is {a} + {b + c + d} is {randNum(9, a + b + c + d)} is { a + b + c + d }");
-          # o.append(f"{a} + {b} + {c} + {d} is {a} + {b + c} + {d} is {a} + {b + c + d} is {randNum(9, a + b + c + d)} is { a + b + c + d }");
 
-          # o.append(f"{a} + {b} + {c} + {d} is {randNum(9, a + b)} + {c} + {d} is {a + b} + {c} + {d} is {a + b + c} + {d} is { a + b + c + d }");
-          # o.append(f"{a} + {b} + {c} + {d} is {a} + {b} + {randNum(9, c + d)} wrong is {a} + {b} + {c + d} is {a} + {b + c + d} is { a + b + c + d }");
-          # o.append(f"{a} + {b} + {c} + {d} is {a} + {randNum(9, b + c)} + {d} wrong is {a} + {b + c} + {d} is {a} + {b + c + d} is { a + b + c + d }");
-
-def makeSumDigit5(o: List[str]):
   for a in range(0, 9):
     for b in range(0, 9):
       for c in range(0, 9):
         for d in range(0, 9):
           for e in range(0, 9):
-            o.append(f"{a} + {b} + {c} + {d} + {e} is {a + b} + {c} + {d} + {e} is {a + b + c} + {d} + {e} is { a + b + c + d + e }");
-            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b + c} + {d} + {e} is {a + b + c} + {d} + {e} is { a + b + c + d + e }");
-            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b + c} + {d} + {e} is {a} + {b + c + d + e} is { a + b + c + d + e }");
-            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b} + {c + d} + {e} is {a} + {b + c + d + e} is { a + b + c + d + e }");
-            o.append(f"{a} + {b} + {c} + {d} + {e} is {a} + {b} + {c} + {d + e} is {a} + {b + c + d + e} is { a + b + c + d + e }");
+            o.append(f"{a} + {b} + {c} + {d} + {e} => #{a} #+ #{b} + {c} + {d} + {e}");
+            o.append(f"{a} + {b} + {c} + {d} + {e} => {a} + #{b} #+ #{c} + {d} + {e}");
+            o.append(f"{a} + {b} + {c} + {d} + {e} => {a} + {b} + #{c} #+ #{d} + {e}");
+            o.append(f"{a} + {b} + {c} + {d} + {e} => {a} + {b} + {c} + #{d} #+ #{e}");
+            o.append(f"{a} + {b} + {c} + {d} + {e} => #{a} + {b} + {c} + {d} #+ #{e}");
+            o.append(f"{a} + {b} + {c} + {d} + {e} => #{a} + {b} + {c} #+ #{d} + {e}");
 
 class Corpus(object):
     def __init__(self):
         self.dictionary = Dictionary()
         
         self.dictionary.add_word('<eos>');
+        self.dictionary.add_word('#');
+        self.dictionary.add_word('=>');
+        self.dictionary.add_word('none');
         self.dictionary.add_word('number');
         self.dictionary.add_word('digit');
         self.dictionary.add_word('wrong');
@@ -170,26 +138,20 @@ class Corpus(object):
         self.dictionary.add_word('c');
 
         basic = []
-        makeIsDigit(basic)
-        makeIsNumber(basic)
-        makeSumDigit(basic)
-        # makeSumDigitWrong(basic)
-        makeBasicVar(basic);
+        makeBasic(basic);
 
         full = [];
-        makeSumVar2(full)
-        makeSumNumber(full)
-        makeSumNumber2(full)
-        makeSumDigit3(full);
-        makeSumDigit4(full)
-        makeSumDigit5(full);
+        makeSums(full)
 
         random.seed(a=42)
         train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
         train.extend(basic);
 
         valid = random.sample(full, math.floor(len(full) * 0.15))  # Randomly select 3 elements
+        valid.extend(basic);
+
         test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
+        test.extend(basic);
 
         self.train = self.tokenize(train)
         self.valid = self.tokenize(valid)

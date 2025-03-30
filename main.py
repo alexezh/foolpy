@@ -14,12 +14,12 @@ import data;
 class Args:
     def __init__(self):
         # embedding size, 200 default
-        self.emsize = 32;
+        self.emsize = 16;
         self.nhead = 1;
         # number of neurons per layer
-        self.nhid = 64;
+        self.nhid = 32;
         # number of layers
-        self.nlayers = 2;
+        self.nlayers = 1;
         # small model
         self.dropout = 0.1;
         self.seed = 42;
@@ -284,7 +284,7 @@ if runTest:
         # Export the model in ONNX format.
     #    export_onnx(args.onnx_export, batch_size=1, seq_len=args.bptt)
 else:
-    complete("4 + 2 is")
+    complete("4 + 2 =>")
 
 
 
