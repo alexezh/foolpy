@@ -13,17 +13,17 @@ import data;
 
 class Args:
     def __init__(self):
+        # embedding size, 200 default
         self.emsize = 200;
         self.nhead = 2;
-        self.nhid = 200;
+        # number of neurons per layer
+        self.nhid = 16;
+        # number of layers
         self.nlayers = 2;
         self.dropout = 0.2;
-        self.batch_size = 20;
         self.seed = 42;
-        self.cuda = False;
-        self.mps = False;
         self.model = "Transformer"
-        self.batch_size = 20;
+        self.batch_size = 64;
         self.lr = 20
         self.epochs = 40
         # sequence length
@@ -34,6 +34,8 @@ class Args:
         self.save = "model.pt"
         self.onnx_export = False
         self.temperature = 1.0
+        self.cuda = False;
+        self.mps = True;
 
 args = Args();
 
@@ -146,22 +148,17 @@ def evaluate(data_source):
 
 def complete(text: str):
     input = corpus.tokenize([text]);
-    input = input.reshape(-1, 1)
-
-    # source = batchify(tokens, 1)
-
-    # torch.tensor([tokens])
+    input = input.reshape(-1, 1).contiguous().to(device)
 
     # Turn on evaluation mode which disables dropout.
     model.eval()
-    total_loss = 0.
     ntokens = len(corpus.dictionary)
 
     with torch.no_grad():
        for i in range(10):
                 # data, targets = get_batch(source, 0)
 #        if args.model == 'Transformer':
-            output = model(input, False)
+            output = model(input)
             output = output.view(-1, ntokens)
 
             word_weights = output[-1].squeeze().div(args.temperature).exp().cpu()
@@ -172,6 +169,8 @@ def complete(text: str):
 
             w = corpus.dictionary.idx2word[word_idx]
             print(w);
+            if w == '<eos>':
+                break
 
 
 #        else:
@@ -280,9 +279,9 @@ if runTest:
         test_loss, math.exp(test_loss)))
     print('=' * 89)
 
-    if len(args.onnx_export) > 0:
+    #if len(args.onnx_export) > 0:
         # Export the model in ONNX format.
-        export_onnx(args.onnx_export, batch_size=1, seq_len=args.bptt)
+    #    export_onnx(args.onnx_export, batch_size=1, seq_len=args.bptt)
 else:
     complete("4 + 2 is")
 

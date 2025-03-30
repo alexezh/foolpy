@@ -22,15 +22,42 @@ class Dictionary(object):
 def makeIsDigit(o: List[str]):
   for v in range(0, 9):
     o.append(f"{v} is digit");
+  for v in range(0, 9):
+    o.append(f"{v} is {v}");
 
 def makeIsNumber(o: List[str]):
   for v in range(0, 100):
     o.append(f"{v} is number");
+  for v in range(0, 100):
+    o.append(f"{v} is {v}");
 
 def makeSumDigit(o: List[str]):
   for a in range(0, 9):
     for b in range(0, 9):
       o.append(f"{a} + {b} is {a + b}");
+
+def makeBasicVar(o: List[str]):
+  for a in range(0, 9):
+    o.append(f"a + {a} is a + {a}");
+    o.append(f"b + {a} is b + {a}");
+    o.append(f"c + {a} is c + {a}");
+  o.append(f"c + a is c + a");
+
+def makeSumDigitWrong(o: List[str]):
+  for a in range(0, 9):
+    for b in range(0, 9):
+      for n in range(0, 10):
+        while True:
+          val = random.randint(0, 9)
+          if val != a + b:
+            o.append(f"{a} + {b} is {val} wrong {a} + {b} is {a + b}");
+            break
+
+def makeMinDigit(o: List[str]):
+  for a in range(0, 9):
+    for b in range(0, 9):
+      if a >= b:
+        o.append(f"{a} - {b} is {a - b}");
 
 def makeSumNumber(o: List[str]):
   for a in range(0, 99):
@@ -52,6 +79,39 @@ def makeSumNumber(o: List[str]):
         b2 = b - b1;
         o.append(f"{a} + {b} is {a1} + {a2} + {b1} + {b2} is {a1} + {b1} + {a2 + b2} is { a + b }");
          
+def makeSumNumber2(o: List[str]):
+  for a in range(0, 99):
+    for b in range(0, 99):
+      if a + b > 99 or (a < 10 and b < 10): 
+         continue
+      o.append(f"{a} + {b} is { a + b }");
+
+def makeSumVar2(o: List[str]):
+  for a in range(0, 99):
+    for b in range(0, 99):
+      o.append(f"a + {a} + {b} is a + { a + b }");
+      o.append(f"b + {a} + {b} is b + { a + b }");
+      o.append(f"c + {a} + {b} is c + { a + b }");
+      o.append(f"{a} + a + {b} is a + { a + b }");
+      o.append(f"{a} + b + {b} is b + { a + b }");
+      o.append(f"{a} + c + {b} is c + { a + b }");
+
+def makeSumDigit3(o: List[str]):
+  for a in range(0, 9):
+    for b in range(0, 9):
+      for c in range(0, 9):
+        o.append(f"{a} + {b} + {c} is {a + b} + {c} is { a + b + c }");
+        o.append(f"{a} + {b} + {c} is {a} + {b + c} is { a + b + c }");
+
+def makeSumDigit4(o: List[str]):
+  for a in range(0, 9):
+    for b in range(0, 9):
+      for c in range(0, 9):
+        for d in range(0, 9):
+          o.append(f"{a} + {b} + {c} + {d} is {a + b} + {c} + {d} is {a + b + c} + {d} is { a + b + c + d }");
+          o.append(f"{a} + {b} + {c} + {d} is {a} + {b} + {c + d} is {a} + {b + c + d} is { a + b + c + d }");
+          o.append(f"{a} + {b} + {c} + {d} is {a} + {b + c} + {d} is {a} + {b + c + d} is { a + b + c + d }");
+
 class Corpus(object):
     def __init__(self):
         self.dictionary = Dictionary()
@@ -59,8 +119,10 @@ class Corpus(object):
         self.dictionary.add_word('<eos>');
         self.dictionary.add_word('number');
         self.dictionary.add_word('digit');
+        self.dictionary.add_word('wrong');
         self.dictionary.add_word('is');
         self.dictionary.add_word('+');
+        self.dictionary.add_word('-');
         self.dictionary.add_word('0');
         self.dictionary.add_word('1');
         self.dictionary.add_word('2');
@@ -71,14 +133,23 @@ class Corpus(object):
         self.dictionary.add_word('7');
         self.dictionary.add_word('8');
         self.dictionary.add_word('9');
+        self.dictionary.add_word('a');
+        self.dictionary.add_word('b');
+        self.dictionary.add_word('c');
 
         basic = []
         makeIsDigit(basic)
         makeIsNumber(basic)
         makeSumDigit(basic)
+        # makeSumDigitWrong(basic)
+        makeBasicVar(basic);
 
         full = [];
+        makeSumVar2(full)
         makeSumNumber(full)
+        makeSumNumber2(full)
+        makeSumDigit3(full);
+        makeSumDigit4(full)
 
         random.seed(a=42)
         train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
