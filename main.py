@@ -14,21 +14,21 @@ import data;
 class Args:
     def __init__(self):
         # embedding size, 200 default
-        self.emsize = 16;
+        self.emsize = 64;
         self.nhead = 1;
         # number of neurons per layer
-        self.nhid = 32;
+        self.nhid = 64;
         # number of layers
-        self.nlayers = 1;
+        self.nlayers = 2;
         # small model
         self.dropout = 0.1;
         self.seed = 42;
         self.model = "Transformer"
         self.batch_size = 512;
-        self.lr = 20
+        self.lr = 15
         self.epochs = 40
         # sequence length
-        self.bptt = 35
+        self.bptt = 64
         self.clip = 0.25
         self.log_interval = 10
         self.dry_run = False

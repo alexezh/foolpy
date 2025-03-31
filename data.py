@@ -40,6 +40,10 @@ def makeBasic(o: List[str]):
     for v2 in vars:
       if v1 != v2:
         o.append(f"{v1} + {v2} => none");
+        o.append(f"{v1} - {v2} => none");
+      else:
+        o.append(f"{v1} + {v2} => none");
+        o.append(f"{v1} - {v2} => 0");
 
 def makeSumNumber(o: List[str]):
   for a in range(0, 99):
@@ -67,6 +71,7 @@ def makeSums(o: List[str]):
       if a + b > 99 or (a < 10 and b < 10): 
          continue
       o.append(f"{a} + {b} => #{a} #+ #{b}");
+      o.append(f"{a} + {b} => #{a} #- #{b}");
 
   for a in range(0, 99):
     for b in range(0, 99):
@@ -75,23 +80,25 @@ def makeSums(o: List[str]):
         o.append(f"{a} + {v} + {b} => #{a} + {v} #+ #{b}");
         o.append(f"{a} + {b} + {v} => #{a} #+ #{b} + {v}");
 
-  for a in range(0, 9):
-    for b in range(0, 9):
-      for c in range(0, 9):
+  for a in range(0, 30):
+    for b in range(0, 30):
+      for c in range(0, 30):
         o.append(f"{a} + {b} + {c} => #{a} #+ #{b} + {c}");
-        o.append(f"{a} + {b} + {c} => {a} + #{b} #+ {c}");
-        o.append(f"a + {a} + {b} + {c} => {a} + {b + c}");
+        o.append(f"{a} + {b} + {c} => {a} + #{b} #+ #{c}");
 
-  for a in range(0, 9):
-    for b in range(0, 9):
-      for c in range(0, 9):
-        for v in ['a', 'b', 'c']:
+  for a in range(0, 30):
+    for b in range(0, 30):
+      for c in range(0, 30):
+        for v in vars:
           o.append(f"{v} + {a} + {b} + {c} => {v} + {a} + #{b} #+ #{c}");
+          o.append(f"{v} + {a} + {b} + {c} => {v} + #{a} + #{b} + {c}");
+          o.append(f"{a} + {v} + {b} + {c} => {a} + {v} + #{b} #+ #{c}");
+          o.append(f"{a} + {v} + {b} + {c} => #{a} + {v} + {b} #+ #{c}");
 
-  for a in range(0, 9):
-    for b in range(0, 9):
-      for c in range(0, 9):
-        for d in range(0, 9):
+  for a in range(0, 20):
+    for b in range(0, 20):
+      for c in range(0, 20):
+        for d in range(0, 20):
           o.append(f"{a} + {b} + {c} + {d} => #{a} + #{b} + {c} + {d}");
           o.append(f"{a} + {b} + {c} + {d} => {a} + {b} + #{c} #+ #{d}");
           o.append(f"{a} + {b} + {c} + {d} => {a} + #{b} #+ #{c} + {d}");
@@ -146,12 +153,12 @@ class Corpus(object):
         random.seed(a=42)
         train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
         train.extend(basic);
-
+        random.shuffle(train)
+  
+        full.extend(basic);
         valid = random.sample(full, math.floor(len(full) * 0.15))  # Randomly select 3 elements
-        valid.extend(basic);
 
         test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
-        test.extend(basic);
 
         self.train = self.tokenize(train)
         self.valid = self.tokenize(valid)
