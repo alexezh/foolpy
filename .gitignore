@@ -6,7 +6,6 @@ __pycache__/
 
 # C extensions
 *.so
-model.pt
 
 # Distribution / packaging
 .Python
@@ -176,3 +175,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# model
+model.pt

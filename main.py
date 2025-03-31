@@ -25,7 +25,7 @@ class Args:
         self.seed = 42;
         self.model = "Transformer"
         self.batch_size = 512;
-        self.lr = 15
+        self.lr = 10
         self.epochs = 40
         # sequence length
         self.bptt = 64
@@ -203,7 +203,7 @@ def train(epoch, lr):
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
         torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
         for p in model.parameters():
-            p.data.add_(p.grad, alpha=-args.lr)
+            p.data.add_(p.grad, alpha=-lr)
 
         total_loss += loss.item()
 
