@@ -4,6 +4,7 @@ import torch.optim as optim
 import time
 import math
 import os
+from torch.utils.data import Dataset, DataLoader
 
 import model;
 import data;
@@ -21,7 +22,7 @@ class Args:
         # number of layers
         self.nlayers = 2;
         # small model
-        self.dropout = 0.1;
+        self.dropout = 0.3;
         self.seed = 42;
         self.model = "Transformer"
         self.batch_size = 512;
@@ -58,43 +59,19 @@ else:
     device = torch.device("cpu")
 
 
-corpus = data.Corpus()
-
-# Starting from sequential data, batchify arranges the dataset into columns.
-# For instance, with the alphabet as the sequence and batch size 4, we'd get
-# ┌ a g m s ┐
-# │ b h n t │
-# │ c i o u │
-# │ d j p v │
-# │ e k q w │
-# └ f l r x ┘.
-
-# These columns are treated as independent by the model, which means that the
-# dependence of e. g. 'g' on 'f' can not be learned, but allows more efficient
-# batch processing.
-def batchify(data, bsz):
-    # Work out how cleanly we can divide the dataset into bsz parts.
-    nbatch = data.size(0) // bsz
-    # Trim off any extra elements that wouldn't cleanly fit (remainders).
-    data = data.narrow(0, 0, nbatch * bsz)
-    # Evenly divide the data across the bsz batches.
-    data = data.view(bsz, -1).t().contiguous()
-    return data.to(device)
+corpus = data.Corpus(args.bptt)
 
 eval_batch_size = 10;
-train_data = batchify(corpus.train, args.batch_size)
-val_data = batchify(corpus.valid, eval_batch_size)
-test_data = batchify(corpus.test, eval_batch_size)
+train_data = DataLoader(corpus.train, args.batch_size)
+val_data = DataLoader(corpus.valid, args.batch_size)
+test_data = DataLoader(corpus.test, args.batch_size)
 
 ###############################################################################
 # Build the model
 ###############################################################################
 
 ntokens = len(corpus.dictionary)
-if args.model == 'Transformer':
-    model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout).to(device)
-else:
-    model = model.RNNModel(args.model, ntokens, args.emsize, args.nhid, args.nlayers, args.dropout, args.tied).to(device)
+model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers, args.dropout).to(device)
 
 criterion = nn.NLLLoss()
 
@@ -111,23 +88,6 @@ def repackage_hidden(h):
         return tuple(repackage_hidden(v) for v in h)
 
 
-# get_batch subdivides the source data into chunks of length args.bptt.
-# If source is equal to the example output of the batchify function, with
-# a bptt-limit of 2, we'd get the following two Variables for i = 0:
-# ┌ a g m s ┐ ┌ b h n t ┐
-# └ b h n t ┘ └ c i o u ┘
-# Note that despite the name of the function, the subdivison of data is not
-# done along the batch dimension (i.e. dimension 1), since that was handled
-# by the batchify function. The chunks are along dimension 0, corresponding
-# to the seq_len dimension in the LSTM.
-
-def get_batch(source, i):
-    seq_len = min(args.bptt, len(source) - 1 - i)
-    data = source[i:i+seq_len]
-    target = source[i+1:i+1+seq_len].view(-1)
-    return data, target
-
-
 def evaluate(data_source):
     # Turn on evaluation mode which disables dropout.
     model.eval()
@@ -136,24 +96,22 @@ def evaluate(data_source):
     if args.model != 'Transformer':
         hidden = model.init_hidden(eval_batch_size)
     with torch.no_grad():
-        for i in range(0, data_source.size(0) - 1, args.bptt):
-            data, targets = get_batch(data_source, i)
-            if args.model == 'Transformer':
-                output = model(data)
-                output = output.view(-1, ntokens)
-            else:
-                output, hidden = model(data, hidden)
-                hidden = repackage_hidden(hidden)
-            total_loss += len(data) * criterion(output, targets).item()
-    return total_loss / (len(data_source) - 1)
+        for batch, target in data_source:
+            batch = batch.to(device)
+            target = target.to(device)
+            output = model(batch)
+            output = output.view(-1, ntokens)
+            target = target.view(-1)
+            total_loss += len(batch) * criterion(output, target).item()
+    return total_loss / (len(data_source.dataset) - 1)
 
 def complete(text: str):
-    input = corpus.tokenize([text]);
+    input = corpus.tokenize(text);
     input = input.reshape(-1, 1).contiguous().to(device)
 
     # Turn on evaluation mode which disables dropout.
     model.eval()
-    ntokens = len(corpus.dictionary)
+    ntokens = len(corpus.dictionary.idx2word)
 
     with torch.no_grad():
        for i in range(10):
@@ -186,18 +144,20 @@ def train(epoch, lr):
     ntokens = len(corpus.dictionary)
     if args.model != 'Transformer':
         hidden = model.init_hidden(args.batch_size)
-    for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
-        data, targets = get_batch(train_data, i)
+    
+    batchIdx = 0;
+    for batch, target in train_data:
+        batch = batch.to(device)
+        target = target.to(device)
+
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         model.zero_grad()
-        if args.model == 'Transformer':
-            output = model(data)
-            output = output.view(-1, ntokens)
-        else:
-            hidden = repackage_hidden(hidden)
-            output, hidden = model(data, hidden)
-        loss = criterion(output, targets)
+        output = model(batch)
+        output = output.view(-1, ntokens)
+        target = target.view(-1)
+
+        loss = criterion(output, target)
         loss.backward()
 
         # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
@@ -206,13 +166,14 @@ def train(epoch, lr):
             p.data.add_(p.grad, alpha=-lr)
 
         total_loss += loss.item()
+        batchIdx+=1
 
-        if batch % args.log_interval == 0 and batch > 0:
+        if batchIdx % args.log_interval == 0 and batchIdx > 0:
             cur_loss = total_loss / args.log_interval
             elapsed = time.time() - start_time
             print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
                     'loss {:5.2f} | ppl {:8.2f}'.format(
-                epoch, batch, len(train_data) // args.bptt, lr,
+                epoch, batchIdx, len(train_data.dataset) // args.batch_size, lr,
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
             total_loss = 0
             start_time = time.time()
@@ -257,7 +218,7 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = True
+runTrain = False
 runTest = False
 
 if runTrain:

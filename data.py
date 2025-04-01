@@ -1,10 +1,44 @@
 import os
 from io import open
 import torch
+from torch.utils.data import Dataset, DataLoader
 import math
 import random
 from typing import List
 
+class TokenizedDataset(Dataset):
+    def __init__(self, sentenses, word2idx, max_length=10):
+      self.content = []
+      self.word2idx = word2idx
+      self.max_length = max_length
+
+      for sentense in sentenses:
+        ids = []
+        words = sentense.split()
+        for word in words:
+          idx = self.word2idx.get(word);
+          if idx == None:
+            for c in word:
+              ids.append(self.word2idx[c])
+          else:
+              ids.append(idx);
+        
+        ids.append(self.word2idx['<eos>'])
+        self.content.append(ids)
+
+    def __len__(self):
+        return len(self.content)
+
+    def __getitem__(self, idx):
+        # Pad or truncate to max_length
+        input = self.content[idx]
+        target = input[1 : len(input)-1] 
+        
+        input = input[:self.max_length] + [0] * (self.max_length - len(input))
+        target = target[:self.max_length] + [0] * (self.max_length - len(target))
+
+        return torch.tensor(input, dtype=torch.long), torch.tensor(target, dtype=torch.long)
+    
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
@@ -117,7 +151,7 @@ def makeSums(o: List[str]):
             o.append(f"{a} + {b} + {c} + {d} + {e} => #{a} + {b} + {c} #+ #{d} + {e}");
 
 class Corpus(object):
-    def __init__(self):
+    def __init__(self, max_length):
         self.dictionary = Dictionary()
         
         self.dictionary.add_word('<eos>');
@@ -160,28 +194,18 @@ class Corpus(object):
 
         test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
 
-        self.train = self.tokenize(train)
-        self.valid = self.tokenize(valid)
-        self.test = self.tokenize(test)
+        self.train = TokenizedDataset(train, self.dictionary.word2idx, max_length)
+        self.valid = TokenizedDataset(valid, self.dictionary.word2idx, max_length)
+        self.test = TokenizedDataset(test, self.dictionary.word2idx, max_length)
 
-    def tokenize(self, exp: List[str]):
-      """Tokenizes a text file."""
-
-      # Tokenize file content
-      idss = []
-      for line in exp:
-          ids = []
-          words = line.split()
-          for word in words:
-            idx = self.dictionary.word2idx.get(word);
-            if idx == None:
-             for c in word:
-                ids.append(self.dictionary.word2idx[c])
-            else:
-               ids.append(idx);
-          
-          ids.append(self.dictionary.word2idx['<eos>'])
-          idss.append(torch.tensor(ids).type(torch.int64))
-      ids = torch.cat(idss)
-
-      return ids
+    def tokenize(self, str):
+      ids = []
+      words = str.split()
+      for word in words:
+        idx = self.dictionary.word2idx.get(word);
+        if idx == None:
+          for c in word:
+            ids.append(self.word2idx[c])
+        else:
+            ids.append(idx);
+      return idx
