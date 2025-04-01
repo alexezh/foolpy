@@ -154,6 +154,7 @@ class Corpus(object):
     def __init__(self, max_length):
         self.dictionary = Dictionary()
         
+        self.dictionary.add_word('<pad>');
         self.dictionary.add_word('<eos>');
         self.dictionary.add_word('#');
         self.dictionary.add_word('=>');
