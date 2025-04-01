@@ -107,6 +107,7 @@ def evaluate(data_source):
 
 def complete(text: str):
     input = corpus.tokenize(text);
+    input = torch.tensor(input).type(torch.int64)
     input = input.reshape(-1, 1).contiguous().to(device)
 
     # Turn on evaluation mode which disables dropout.
