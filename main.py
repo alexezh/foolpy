@@ -26,9 +26,9 @@ class Args:
         self.dropout = 0.3;
         self.seed = 42;
         self.model = "Transformer"
-        self.batch_size = 62;
+        self.batch_size = 32;
         self.lr = 1
-        self.epochs = 40
+        self.epochs = 20
         # sequence length
         self.bptt = 64
         self.clip = 0.25
@@ -74,7 +74,7 @@ test_data = DataLoader(corpus.test, args.batch_size)
 ntokens = len(corpus.dictionary)
 
 #model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
-model = model.RNNModel(ntokens, args.emsize, args.bptt, args.nhid, args.bptt).to(device)
+model = model.RNNModel(ntokens, args.emsize, args.nhid, ntokens).to(device)
 criterion = nn.CrossEntropyLoss(ignore_index=0, label_smoothing=0.1)  # Ignore padding token
 optimizer = optim.Adam(model.parameters(), lr=0.00005)
 
@@ -106,17 +106,12 @@ def complete(text: str):
 #        if args.model == 'Transformer':
             output = model(input)
 
-            next_word_logits = output[:, -1, :]  # Get last token predictions
-            next_word_id = torch.argmax(F.softmax(next_word_logits, dim=-1), dim=-1)
-       
-            # word_weights = output[-1].squeeze().div(args.temperature).exp().cpu()
-            # word_idx = torch.multinomial(word_weights, 1)[0]
-            # word_tensor = torch.Tensor([[next_word_id]]).long().to(device)
-            
-            # input = torch.cat(input, word_tensor).to(device)
-            input = torch.cat([input, next_word_id.unsqueeze(0)], 1)
+            #next_word_logits = output[:, -1, :]  # Get last token predictions
+            #next_word_id = torch.argmax(F.softmax(next_word_logits, dim=-1), dim=-1)
+            predicted_word_idx = torch.argmax(output[0, -1, :]).item()
+            input = torch.cat([input, torch.tensor([predicted_word_idx]).unsqueeze(0).to(device)], 1)
 
-            w = corpus.dictionary.idx2word[next_word_id.item()]
+            w = corpus.dictionary.idx2word[predicted_word_idx]
             print(w);
             if w == '<eos>':
                 break
@@ -181,19 +176,23 @@ def trainEpoc():
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                             val_loss, math.exp(val_loss)))
+
+        torch.save(model.state_dict(), args.model)
+
     except KeyboardInterrupt:
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = True
+runTrain = False
 runTest = False
 
 if runTrain:
     trainEpoc()
 
 # Load the best saved model.
-with open(args.save, 'rb') as f:
+with open(args.model, 'rb') as f:
     model.load_state_dict(torch.load(f))
+    
     # after load the rnn params are not a continuous chunk of memory
     # this makes them a continuous chunk, and will speed up forward pass
     # Currently, only rnn model supports flatten_parameters function.
