@@ -16,17 +16,17 @@ import data;
 class Args:
     def __init__(self):
         # embedding size, 200 default
-        self.emsize = 64;
-        self.nhead = 1;
+        self.emsize = 128;
+        self.nhead = 8;
         # number of neurons per layer
         self.nhid = 64;
         # number of layers
-        self.nlayers = 2;
+        self.nlayers = 4;
         # small model
         self.dropout = 0.3;
         self.seed = 42;
         self.model = "Transformer"
-        self.batch_size = 512;
+        self.batch_size = 62;
         self.lr = 1
         self.epochs = 40
         # sequence length
@@ -72,10 +72,11 @@ test_data = DataLoader(corpus.test, args.batch_size)
 ###############################################################################
 
 ntokens = len(corpus.dictionary)
-model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
 
-criterion = nn.CrossEntropyLoss(ignore_index=0)  # Ignore padding token
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+#model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
+model = model.RNNModel(ntokens, args.emsize, args.bptt, args.nhid, args.bptt).to(device)
+criterion = nn.CrossEntropyLoss(ignore_index=0, label_smoothing=0.1)  # Ignore padding token
+optimizer = optim.Adam(model.parameters(), lr=0.00005)
 
 ###############################################################################
 # Training code
@@ -88,24 +89,6 @@ def repackage_hidden(h):
         return h.detach()
     else:
         return tuple(repackage_hidden(v) for v in h)
-
-
-def evaluate(data_source):
-    # Turn on evaluation mode which disables dropout.
-    model.eval()
-    total_loss = 0.
-    ntokens = len(corpus.dictionary)
-    if args.model != 'Transformer':
-        hidden = model.init_hidden(eval_batch_size)
-    with torch.no_grad():
-        for batch, target in data_source:
-            batch = batch.to(device)
-            target = target.to(device)
-            output = model(batch)
-            output = output.view(-1, ntokens)
-            target = target.view(-1)
-            total_loss += len(batch) * criterion(output, target).item()
-    return total_loss / (len(data_source.dataset) - 1)
 
 def complete(text: str):
     input = corpus.tokenize(text);
@@ -122,7 +105,6 @@ def complete(text: str):
                 # data, targets = get_batch(source, 0)
 #        if args.model == 'Transformer':
             output = model(input)
-            # output = output.view(-1, ntokens)
 
             next_word_logits = output[:, -1, :]  # Get last token predictions
             next_word_id = torch.argmax(F.softmax(next_word_logits, dim=-1), dim=-1)

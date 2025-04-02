@@ -59,7 +59,7 @@ def randNum(max, other):
     if val != other:
       return val
 
-vars = ['a', 'b', 'c'];
+vars = ['a', 'b', 'c', 'd', 'e'];
 
 def makeBasic(o: List[str]):
   for a in range(0, 9):
@@ -178,6 +178,8 @@ class Corpus(object):
         self.dictionary.add_word('a');
         self.dictionary.add_word('b');
         self.dictionary.add_word('c');
+        self.dictionary.add_word('d');
+        self.dictionary.add_word('e');
 
         basic = []
         makeBasic(basic);
@@ -186,7 +188,7 @@ class Corpus(object):
         makeSums(full)
 
         random.seed(a=42)
-        train = random.sample(full, math.floor(len(full) * 0.7))  # Randomly select 3 elements
+        train = random.sample(full, math.floor(len(full) * 0.4))  # Randomly select 3 elements
         train.extend(basic);
         random.shuffle(train)
   

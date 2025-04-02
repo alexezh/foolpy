@@ -19,3 +19,17 @@ class TransformerModel(nn.Module):
         x = self.transformer(x)  # Pass through Transformer
         x = self.fc_out(x)  # Convert to vocab-size output
         return x
+    
+
+class RNNModel(nn.Module):
+    def __init__(self, vocab_size, embed_size, hidden_size, output_size):
+        super(RNNModel, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.rnn = nn.RNN(embed_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+        
+    def forward(self, x):
+        embedded = self.embedding(x)
+        rnn_out, _ = self.rnn(embedded)  # Ignoring hidden state for simplicity
+        output = self.fc(rnn_out)
+        return output
