@@ -5,6 +5,7 @@ import time
 import math
 import os
 from torch.utils.data import Dataset, DataLoader
+import torch.nn.functional as F
 
 import model;
 import data;
@@ -73,7 +74,6 @@ test_data = DataLoader(corpus.test, args.batch_size)
 ntokens = len(corpus.dictionary)
 model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
 
-criterion = nn.CrossEntropyLoss() # nn.NLLLoss()
 criterion = nn.CrossEntropyLoss(ignore_index=0)  # Ignore padding token
 optimizer = optim.Adam(model.parameters(), lr=0.01)
 
@@ -109,8 +109,9 @@ def evaluate(data_source):
 
 def complete(text: str):
     input = corpus.tokenize(text);
-    input = torch.tensor(input).type(torch.int64)
-    input = input.reshape(-1, 1).contiguous().to(device)
+    #input = torch.tensor(input).type(torch.int64)
+    #input = input.reshape(-1, 1).to(device)
+    input = torch.tensor(input).unsqueeze(0).to(device)
 
     # Turn on evaluation mode which disables dropout.
     model.eval()
@@ -121,15 +122,19 @@ def complete(text: str):
                 # data, targets = get_batch(source, 0)
 #        if args.model == 'Transformer':
             output = model(input)
-            output = output.view(-1, ntokens)
+            # output = output.view(-1, ntokens)
 
-            word_weights = output[-1].squeeze().div(args.temperature).exp().cpu()
-            word_idx = torch.multinomial(word_weights, 1)[0]
-            word_tensor = torch.Tensor([[word_idx]]).long().to(device)
+            next_word_logits = output[:, -1, :]  # Get last token predictions
+            next_word_id = torch.argmax(F.softmax(next_word_logits, dim=-1), dim=-1)
+       
+            # word_weights = output[-1].squeeze().div(args.temperature).exp().cpu()
+            # word_idx = torch.multinomial(word_weights, 1)[0]
+            # word_tensor = torch.Tensor([[next_word_id]]).long().to(device)
             
-            input = torch.cat([input, word_tensor], 0)
+            # input = torch.cat(input, word_tensor).to(device)
+            input = torch.cat([input, next_word_id.unsqueeze(0)], 1)
 
-            w = corpus.dictionary.idx2word[word_idx]
+            w = corpus.dictionary.idx2word[next_word_id.item()]
             print(w);
             if w == '<eos>':
                 break

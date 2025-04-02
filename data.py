@@ -209,4 +209,4 @@ class Corpus(object):
             ids.append(self.word2idx[c])
         else:
             ids.append(idx);
-      return idx
+      return ids
