@@ -19,14 +19,14 @@ class Args:
         self.emsize = 128;
         self.nhead = 8;
         # number of neurons per layer
-        self.nhid = 64;
+        self.nhid = 128;
         # number of layers
-        self.nlayers = 4;
+        self.nlayers = 2;
         # small model
         self.dropout = 0.3;
         self.seed = 42;
         self.model = "Transformer"
-        self.batch_size = 32;
+        self.batch_size = 64;
         self.lr = 1
         self.epochs = 20
         # sequence length
@@ -63,9 +63,8 @@ else:
 corpus = data.Corpus(args.bptt)
 
 eval_batch_size = 10;
-train_data = DataLoader(corpus.train, args.batch_size)
-val_data = DataLoader(corpus.valid, args.batch_size)
-test_data = DataLoader(corpus.test, args.batch_size)
+train_data = DataLoader(corpus.train, args.batch_size, shuffle=True, drop_last=True)
+test_data = DataLoader(corpus.test, args.batch_size, shuffle=True, drop_last=True)
 
 ###############################################################################
 # Build the model
@@ -74,9 +73,9 @@ test_data = DataLoader(corpus.test, args.batch_size)
 ntokens = len(corpus.dictionary)
 
 #model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
-model = model.RNNModel(ntokens, args.emsize, args.nhid, ntokens).to(device)
+model = model.RNNModel(ntokens, args.emsize, hidden_size=args.nhid, num_layers=args.nlayers, output_size=ntokens).to(device)
 criterion = nn.CrossEntropyLoss(ignore_index=0, label_smoothing=0.1)  # Ignore padding token
-optimizer = optim.Adam(model.parameters(), lr=0.00005)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 ###############################################################################
 # Training code
@@ -94,7 +93,9 @@ def complete(text: str):
     input = corpus.tokenize(text);
     #input = torch.tensor(input).type(torch.int64)
     #input = input.reshape(-1, 1).to(device)
-    input = torch.tensor(input).unsqueeze(0).to(device)
+    input = torch.tensor([input]).to(device)
+
+    hidden = torch.zeros(args.nlayers, 1, args.nhid).to(device)
 
     # Turn on evaluation mode which disables dropout.
     model.eval()
@@ -104,13 +105,13 @@ def complete(text: str):
        for i in range(10):
                 # data, targets = get_batch(source, 0)
 #        if args.model == 'Transformer':
-            output = model(input)
+            output, hidden = model(input, hidden)
 
             #next_word_logits = output[:, -1, :]  # Get last token predictions
             #next_word_id = torch.argmax(F.softmax(next_word_logits, dim=-1), dim=-1)
             predicted_word_idx = torch.argmax(output[0, -1, :]).item()
-            input = torch.cat([input, torch.tensor([predicted_word_idx]).unsqueeze(0).to(device)], 1)
-
+            #input = torch.cat([input, torch.tensor([predicted_word_idx]).unsqueeze(0).to(device)], 1)
+            input = torch.tensor([[predicted_word_idx]]).to(device)
             w = corpus.dictionary.idx2word[predicted_word_idx]
             print(w);
             if w == '<eos>':
@@ -133,10 +134,12 @@ def train(epoch):
         batch = batch.to(device)
         target = target.to(device)
 
+        hidden = torch.zeros(args.nlayers, args.batch_size, args.nhid).to(device)
+
         # Starting each batch, we detach the hidden state from how it was previously produced.
         # If we didn't, the model would try backpropagating all the way to start of the dataset.
         optimizer.zero_grad()
-        output = model(batch)
+        output, _ = model(batch, hidden)
         output = output.view(-1, ntokens)
         target = target.view(-1)
 
@@ -177,7 +180,7 @@ def trainEpoc():
                     'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
                                             val_loss, math.exp(val_loss)))
 
-        torch.save(model.state_dict(), args.model)
+        torch.save(model.state_dict(), args.save)
 
     except KeyboardInterrupt:
         print('-' * 89)
@@ -190,7 +193,7 @@ if runTrain:
     trainEpoc()
 
 # Load the best saved model.
-with open(args.model, 'rb') as f:
+with open(args.save, 'rb') as f:
     model.load_state_dict(torch.load(f))
     
     # after load the rnn params are not a continuous chunk of memory
@@ -208,7 +211,7 @@ if runTest:
     print('=' * 89)
 
 else:
-    complete("4 + 2 =>")
+    complete("4 + 2 + 3 =>")
 
 
 

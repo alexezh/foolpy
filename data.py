@@ -190,7 +190,6 @@ class Corpus(object):
         random.seed(a=42)
         train = random.sample(full, math.floor(len(full) * 0.4))  # Randomly select 3 elements
         train.extend(basic);
-        random.shuffle(train)
   
         full.extend(basic);
         valid = random.sample(full, math.floor(len(full) * 0.15))  # Randomly select 3 elements

@@ -22,14 +22,14 @@ class TransformerModel(nn.Module):
     
 
 class RNNModel(nn.Module):
-    def __init__(self, vocab_size, embed_size, hidden_size, output_size):
+    def __init__(self, vocab_size, embed_size, hidden_size, num_layers, output_size):
         super(RNNModel, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embed_size)
-        self.rnn = nn.RNN(embed_size, hidden_size, batch_first=True)
+        self.rnn = nn.RNN(embed_size, hidden_size, num_layers=num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
         
-    def forward(self, x):
-        embedded = self.embedding(x)
-        rnn_out, _ = self.rnn(embedded)  # Ignoring hidden state for simplicity
-        output = self.fc(rnn_out)
-        return output
+    def forward(self, x, hidden):
+        x = self.embedding(x)  # Convert word indices to embeddings
+        output, hidden = self.rnn(x, hidden)  # Process through RNN
+        output = self.fc(output)  # Map to vocabulary size
+        return output, hidden
