@@ -1,10 +1,10 @@
 class Args:
     def __init__(self):
         # embedding size, 200 default
-        self.emsize = 128;
+        self.emsize = 64;
         self.nhead = 8;
         # number of neurons per layer
-        self.nhid = 128;
+        self.nhid = 64;
         # number of layers
         self.nlayers = 2;
         # small model
@@ -15,7 +15,7 @@ class Args:
         self.lr = 1
         self.epochs = 20
         # sequence length
-        self.bptt = 48
+        self.bptt = 32
         self.clip = 0.25
         self.log_interval = 100
         self.dry_run = False

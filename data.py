@@ -6,7 +6,7 @@ import math
 import random
 from typing import List
 
-def tokenize(value, word2idx):
+def tokenizeToIds(value, word2idx):
     ids = []
     words = value.split()
     for word in words:
@@ -20,6 +20,19 @@ def tokenize(value, word2idx):
     ids.append(word2idx['<eos>'])
     return ids;
 
+def tokenizeToWords(value, word2idx):
+    o = []
+    words = value.split()
+    for word in words:
+      idx = word2idx.get(word);
+      if idx == None:
+        for c in word:
+          o.append(c)
+      else:
+          o.append(word);
+    
+    return o;
+
 class TokenizedDataset(Dataset):
     def __init__(self, sentenses, word2idx, max_length=10):
       self.questions = []
@@ -27,11 +40,33 @@ class TokenizedDataset(Dataset):
       self.word2idx = word2idx
       self.max_length = max_length
 
+      self.asQuestionAnswer(sentenses);
+
+    def asQuestionAnswer(self, sentenses): 
       for sentense in sentenses:
         parts = sentense.split("=>")
-        self.questions.append(tokenize(parts[0], self.word2idx));
-        self.answers.append(tokenize(parts[1], self.word2idx));
+        self.questions.append(tokenizeToIds(parts[0], self.word2idx));
+        self.answers.append(tokenizeToIds(parts[1], self.word2idx));
 
+    def asMask(self, sentenses): 
+      for sentense in sentenses:
+        parts = sentense.split("=>")
+        self.questions.append(tokenizeToIds(parts[0], self.word2idx));
+        answer = tokenizeToWords(parts[1]);
+
+        mask = []
+        i = 0
+        while i < len(answer):
+          t = answer[i]
+          if t == '#':
+            i += 2
+            mask.append(1)
+          else:
+            i += 1
+            mask.append(0)
+
+        self.answers.append(mask);
+    
     def __len__(self):
         return len(self.questions)
 
