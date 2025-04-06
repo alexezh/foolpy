@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from data import Corpus
+from datacorpus import Corpus
 
 class Vector2VectorModel(nn.Module):
     def __init__(self, input_dim, vocab_size, embedding_dim, hidden_dim, output_dim):

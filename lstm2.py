@@ -6,7 +6,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from args import Args
-from data import Corpus
+from datacorpus import Corpus
 
 class PositionSelector(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim):

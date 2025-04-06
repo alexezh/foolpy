@@ -9,6 +9,7 @@ import torch.nn.functional as F
 
 from args import Args
 # import v2v;
+import datacorpus
 import lstm2;
 import data;
 
@@ -36,7 +37,7 @@ else:
     device = torch.device("cpu")
 
 
-corpus = data.Corpus(args.bptt)
+corpus = datacorpus.Corpus(args.bptt)
 
 eval_batch_size = 10;
 train_data = DataLoader(corpus.train, args.batch_size, shuffle=True, drop_last=True)
