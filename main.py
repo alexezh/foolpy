@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 from args import Args
 # import v2v;
-import lstm;
+import lstm2;
 import data;
 
 # code is based on
@@ -60,7 +60,7 @@ def trainEpoc():
     try:
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
-            val_loss = lstm.train(model, device, train_data, epoch, args)
+            val_loss = lstm2.train(model, device, train_data, epoch, args)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '.format(epoch, (time.time() - epoch_start_time),
                                             val_loss))
@@ -71,10 +71,10 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = True
+runTrain = False
 runTest = False
 
-model = lstm.initialize(args, device)
+model = lstm2.initialize(args, device, ntokens)
 
 if runTrain:
     trainEpoc()
@@ -89,7 +89,8 @@ with open(args.save, 'rb') as f:
     if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
         model.rnn.flatten_parameters()
 
-lstm.complete(model, device, "4 + 5 + 3", args.bptt, corpus)
+lstm2.complete("4 + 5 + 3", args, corpus)
+lstm2.complete("a + 5 + 3", args, corpus)
 
 
 

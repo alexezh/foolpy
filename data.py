@@ -40,7 +40,7 @@ class TokenizedDataset(Dataset):
       self.word2idx = word2idx
       self.max_length = max_length
 
-      self.asQuestionAnswer(sentenses);
+      self.asMask(sentenses);
 
     def asQuestionAnswer(self, sentenses): 
       for sentense in sentenses:
@@ -52,7 +52,7 @@ class TokenizedDataset(Dataset):
       for sentense in sentenses:
         parts = sentense.split("=>")
         self.questions.append(tokenizeToIds(parts[0], self.word2idx));
-        answer = tokenizeToWords(parts[1]);
+        answer = tokenizeToWords(parts[1], self.word2idx);
 
         mask = []
         i = 0
