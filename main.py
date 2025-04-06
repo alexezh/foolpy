@@ -7,7 +7,7 @@ import os
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 
-import model;
+import v2v;
 import data;
 
 # code is based on
@@ -32,7 +32,7 @@ class Args:
         # sequence length
         self.bptt = 64
         self.clip = 0.25
-        self.log_interval = 10
+        self.log_interval = 100
         self.dry_run = False
         self.save = "model.pt"
         self.onnx_export = False
@@ -73,97 +73,8 @@ test_data = DataLoader(corpus.test, args.batch_size, shuffle=True, drop_last=Tru
 ntokens = len(corpus.dictionary)
 
 #model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
-model = model.RNNModel(ntokens, args.emsize, hidden_size=args.nhid, num_layers=args.nlayers, output_size=ntokens).to(device)
-criterion = nn.CrossEntropyLoss(ignore_index=0, label_smoothing=0.1)  # Ignore padding token
-optimizer = optim.Adam(model.parameters(), lr=0.001)
-
-###############################################################################
-# Training code
-###############################################################################
-
-def repackage_hidden(h):
-    """Wraps hidden states in new Tensors, to detach them from their history."""
-
-    if isinstance(h, torch.Tensor):
-        return h.detach()
-    else:
-        return tuple(repackage_hidden(v) for v in h)
-
-def complete(text: str):
-    input = corpus.tokenize(text);
-    #input = torch.tensor(input).type(torch.int64)
-    #input = input.reshape(-1, 1).to(device)
-    input = torch.tensor([input]).to(device)
-
-    hidden = torch.zeros(args.nlayers, 1, args.nhid).to(device)
-
-    # Turn on evaluation mode which disables dropout.
-    model.eval()
-    ntokens = len(corpus.dictionary.idx2word)
-
-    with torch.no_grad():
-       for i in range(10):
-                # data, targets = get_batch(source, 0)
-#        if args.model == 'Transformer':
-            output, hidden = model(input, hidden)
-
-            #next_word_logits = output[:, -1, :]  # Get last token predictions
-            #next_word_id = torch.argmax(F.softmax(next_word_logits, dim=-1), dim=-1)
-            predicted_word_idx = torch.argmax(output[0, -1, :]).item()
-            #input = torch.cat([input, torch.tensor([predicted_word_idx]).unsqueeze(0).to(device)], 1)
-            input = torch.tensor([[predicted_word_idx]]).to(device)
-            w = corpus.dictionary.idx2word[predicted_word_idx]
-            print(w);
-            if w == '<eos>':
-                break
-
-
-#        else:
-#            output, hidden = model(data, hidden)
-#            hidden = repackage_hidden(hidden)
-
-def train(epoch):
-    # Turn on training mode which enables dropout.
-    model.train()
-    total_loss = 0.
-    start_time = time.time()
-    ntokens = len(corpus.dictionary)
-    
-    batchIdx = 0;
-    for batch, target in train_data:
-        batch = batch.to(device)
-        target = target.to(device)
-
-        hidden = torch.zeros(args.nlayers, args.batch_size, args.nhid).to(device)
-
-        # Starting each batch, we detach the hidden state from how it was previously produced.
-        # If we didn't, the model would try backpropagating all the way to start of the dataset.
-        optimizer.zero_grad()
-        output, _ = model(batch, hidden)
-        output = output.view(-1, ntokens)
-        target = target.view(-1)
-
-        loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
-
-        total_loss += loss.item()
-        batchIdx+=1
-
-        if batchIdx % args.log_interval == 0 and batchIdx > 0:
-            cur_loss = total_loss / args.log_interval
-            elapsed = time.time() - start_time
-            print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | '
-                    'loss {:5.2f} | ppl {:8.2f}'.format(
-                epoch, batchIdx, len(train_data.dataset) // args.batch_size, 
-                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
-            total_loss = 0
-            start_time = time.time()
-        if args.dry_run:
-            break
-
-    return total_loss
-
+# model = model.RNNModel(ntokens, args.emsize, hidden_size=args.nhid, num_layers=args.nlayers, output_size=ntokens).to(device)
+model = v2v.Vector2VectorModel(input_dim=args.bptt, hidden_dim=args.bptt*2, output_dim=args.bptt).to(device)
 
 def trainEpoc(): 
     # Loop over epochs.
@@ -174,11 +85,10 @@ def trainEpoc():
     try:
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
-            val_loss = train(epoch)
+            val_loss = v2v.train(model, device, train_data)
             print('-' * 89)
-            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
-                    'valid ppl {:8.2f}'.format(epoch, (time.time() - epoch_start_time),
-                                            val_loss, math.exp(val_loss)))
+            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '.format(epoch, (time.time() - epoch_start_time),
+                                            val_loss))
 
         torch.save(model.state_dict(), args.save)
 
@@ -186,10 +96,11 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = False
+runTrain = True
 runTest = False
 
 if runTrain:
+    v2v.initialize(model)
     trainEpoc()
 
 # Load the best saved model.
@@ -202,16 +113,7 @@ with open(args.save, 'rb') as f:
     if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
         model.rnn.flatten_parameters()
 
-if runTest:
-    # Run on test data.
-    test_loss = evaluate(test_data)
-    print('=' * 89)
-    print('| End of training | test loss {:5.2f} | test ppl {:8.2f}'.format(
-        test_loss, math.exp(test_loss)))
-    print('=' * 89)
-
-else:
-    complete("4 + 2 + 3 =>")
+v2v.complete(model, device, "4 + 5 + 3", args.bptt, corpus)
 
 
 
