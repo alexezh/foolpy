@@ -6,14 +6,18 @@ import torch.optim as optim
 from data import Corpus
 
 class Vector2VectorModel(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_dim, vocab_size, embedding_dim, hidden_dim, output_dim):
         super().__init__()
+
+        # self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.layer1 = nn.Linear(input_dim, hidden_dim)
         self.layer2 = nn.Linear(hidden_dim, hidden_dim)
         self.layer3 = nn.Linear(hidden_dim, hidden_dim)
         self.layer4 = nn.Linear(hidden_dim, output_dim)
 
     def forward(self, x):
+        # x = self.embedding(x)
+
         x = F.relu(self.layer1(x))
         x = F.relu(self.layer2(x))
         x = F.relu(self.layer3(x))
@@ -28,7 +32,7 @@ def initialize(model):
     global criterion;
     
     criterion = nn.MSELoss()  # or CrossEntropyLoss if doing classification
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=1)
 
 def train(model, device, dataloader):
     # Train loop
@@ -40,6 +44,7 @@ def train(model, device, dataloader):
 
         optimizer.zero_grad()
         outputs = model(batch_inputs)
+        # outputs = torch.argmax(outputs, dim=-1)
         loss = criterion(outputs, batch_targets)
         loss.backward()
         optimizer.step()

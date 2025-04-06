@@ -7,38 +7,14 @@ import os
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 
-import v2v;
+from args import Args
+# import v2v;
+import lstm;
 import data;
 
 # code is based on
 # https://github.com/pytorch/examples/blob/main/word_language_model/main.py
 
-class Args:
-    def __init__(self):
-        # embedding size, 200 default
-        self.emsize = 128;
-        self.nhead = 8;
-        # number of neurons per layer
-        self.nhid = 128;
-        # number of layers
-        self.nlayers = 2;
-        # small model
-        self.dropout = 0.3;
-        self.seed = 42;
-        self.model = "Transformer"
-        self.batch_size = 64;
-        self.lr = 1
-        self.epochs = 20
-        # sequence length
-        self.bptt = 64
-        self.clip = 0.25
-        self.log_interval = 100
-        self.dry_run = False
-        self.save = "model.pt"
-        self.onnx_export = False
-        self.temperature = 1.0
-        self.cuda = False;
-        self.mps = True;
 
 args = Args();
 
@@ -74,18 +50,17 @@ ntokens = len(corpus.dictionary)
 
 #model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
 # model = model.RNNModel(ntokens, args.emsize, hidden_size=args.nhid, num_layers=args.nlayers, output_size=ntokens).to(device)
-model = v2v.Vector2VectorModel(input_dim=args.bptt, hidden_dim=args.bptt*2, output_dim=args.bptt).to(device)
+# model = lstm.Vector2VectorModel(input_dim=args.bptt, vocab_size=ntokens, embedding_dim=args.emsize, hidden_dim=args.bptt*2, output_dim=args.bptt).to(device)
 
 def trainEpoc(): 
     # Loop over epochs.
-    best_val_loss = None
     lr = args.lr
 
     # At any point you can hit Ctrl + C to break out of training early.
     try:
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
-            val_loss = v2v.train(model, device, train_data)
+            val_loss = lstm.train(model, device, train_data, epoch, args)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '.format(epoch, (time.time() - epoch_start_time),
                                             val_loss))
@@ -99,8 +74,9 @@ def trainEpoc():
 runTrain = True
 runTest = False
 
+model = lstm.initialize(args, device)
+
 if runTrain:
-    v2v.initialize(model)
     trainEpoc()
 
 # Load the best saved model.
@@ -113,7 +89,7 @@ with open(args.save, 'rb') as f:
     if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
         model.rnn.flatten_parameters()
 
-v2v.complete(model, device, "4 + 5 + 3", args.bptt, corpus)
+lstm.complete(model, device, "4 + 5 + 3", args.bptt, corpus)
 
 
 
