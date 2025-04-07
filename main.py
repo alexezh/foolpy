@@ -61,7 +61,7 @@ def trainEpoc():
     try:
         for epoch in range(1, args.epochs+1):
             epoch_start_time = time.time()
-            val_loss = lstm2.train(model, device, train_data, epoch, args)
+            val_loss = lstm2.train(train_data, epoch, args)
             print('-' * 89)
             print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '.format(epoch, (time.time() - epoch_start_time),
                                             val_loss))
@@ -72,7 +72,7 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = False
+runTrain = True
 runTest = False
 
 model = lstm2.initialize(args, device, ntokens)

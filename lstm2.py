@@ -9,22 +9,32 @@ from args import Args
 from datacorpus import Corpus
 
 class PositionSelector(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim):
+    def __init__(self, vocab_size, args: Args):
         super(PositionSelector, self).__init__()
 #        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers=1, bidirectional=True, batch_first=True)
 #        self.classifier = nn.Linear(hidden_dim * 2, 1)  # 2 for bidirectional
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.bilstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True, bidirectional=True)
-        self.fc = nn.Linear(hidden_dim * 2, 1)  # output 1 logit per token
+        self.embedding = nn.Embedding(vocab_size, args.emsize)
+        self.dropout = nn.Dropout(0.5)
+        self.bilstm = nn.LSTM(
+            input_size = args.emsize, 
+            hidden_size=args.nhid,
+            num_layers=args.nlayers,
+            batch_first=True, 
+            bidirectional=True)
+        self.fc = nn.Linear(args.nhid * 2, 1)  # output 1 logit per token
 
     def forward(self, x):
         # x: [batch_size, seq_len]
         embed = self.embedding(x)  # [batch_size, seq_len, embed_dim]
         lstm_out, _ = self.bilstm(embed)  # [batch_size, seq_len, hidden_dim*2]
+
+        lstm_out = self.dropout(lstm_out)
+
         logits = self.fc(lstm_out)  # [batch_size, seq_len, 1]
         logits = logits.squeeze(-1)  # [batch_size, seq_len]
-        probs = torch.sigmoid(logits)  # [batch_size, seq_len]
-        return probs
+        #probs = torch.sigmoid(logits)  # [batch_size, seq_len]
+        #return probs
+        return logits
     
 #    def forward(self, x):  # x: [batch, seq_len, input_dim]
 #        output, _ = self.lstm(x)
@@ -41,10 +51,14 @@ def initialize(args: Args, _device, ntokens):
     global optimizer, criterion, device, model
     device = _device
 
-    model = PositionSelector(ntokens, args.emsize, args.nhid).to(device)
+    model = PositionSelector(ntokens, args).to(device)
 
-    criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters())
+    pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+    # criterion = nn.BCELoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
     #criterion = nn.CrossEntropyLoss()
 
     return model
@@ -99,8 +113,8 @@ def train(train_data, epoch, args: Args):
                     'loss {:5.2f} | ppl {:8.2f}'.format(
                 epoch, batchIdx, len(train_data.dataset) // args.batch_size, 
                 elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
-            total_loss = 0
             start_time = time.time()
+            total_loss = 0;
 
     return total_loss
 
