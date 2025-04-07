@@ -8,11 +8,9 @@ import torch.nn.functional as F
 from args import Args
 from datacorpus import Corpus
 
-class PositionSelector(nn.Module):
+""" class PositionSelector(nn.Module):
     def __init__(self, vocab_size, args: Args):
         super(PositionSelector, self).__init__()
-#        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers=1, bidirectional=True, batch_first=True)
-#        self.classifier = nn.Linear(hidden_dim * 2, 1)  # 2 for bidirectional
         self.embedding = nn.Embedding(vocab_size, args.emsize)
         self.dropout = nn.Dropout(0.5)
         self.bilstm = nn.LSTM(
@@ -36,12 +34,40 @@ class PositionSelector(nn.Module):
         #return probs
         return logits
     
-#    def forward(self, x):  # x: [batch, seq_len, input_dim]
-#        output, _ = self.lstm(x)
-#        logits = self.classifier(output).squeeze(-1)  # [batch, seq_len]
-#        probs = torch.sigmoid(logits)
-#        return probs
+ """    
+
+import torch
+import torch.nn as nn
+
+class PositionSelector(nn.Module):
+    def __init__(self, args: Args):
+        super(PositionSelector, self).__init__()
+        
+        # Define the LSTM layer
+        self.lstm = nn.LSTM(input_size=1,  # Input size is 1 as we're not using embeddings
+                            hidden_size=args.nhid,
+                            num_layers=args.nlayers,
+                            batch_first=True)
+        
+        # Fully connected layer to map to output
+        self.fc = nn.Linear(args.nhid, args.bptt)
     
+    def forward(self, x):
+        # x has shape [batch_size, seq_len]
+        # We need to reshape it to [batch_size, seq_len, 1] for LSTM
+        x = x.unsqueeze(-1).float()  # Add a dimension and convert to float
+        
+        # Pass through LSTM
+        lstm_out, (hn, cn) = self.lstm(x)
+        
+        # Use the last hidden state for prediction
+        out = self.fc(lstm_out[:, -1, :])  # Get the output of the last timestep
+
+        # Apply sigmoid to produce values between 0 and 1 for position selection (binary)
+        # out = torch.sigmoid(out)  # Output will be in the range [0, 1]
+                
+        return out
+
 criterion = None
 optimizer = None
 device = None
@@ -51,13 +77,13 @@ def initialize(args: Args, _device, ntokens):
     global optimizer, criterion, device, model
     device = _device
 
-    model = PositionSelector(ntokens, args).to(device)
+    model = PositionSelector(args).to(device)
 
-    pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+    # pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
+    # criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-    # criterion = nn.BCELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.01)
     #criterion = nn.CrossEntropyLoss()
 
@@ -97,6 +123,10 @@ def train(train_data, epoch, args: Args):
 
         optimizer.zero_grad()
         probs = model(src)  # [batch, seq_len]
+
+        # Flatten outputs and targets for loss calculation
+        probs = probs.view(-1)  # Flatten to shape [batch_size * seq_len]
+        tgt = tgt.view(-1) 
 
         loss = criterion(probs, tgt)
         loss.backward()
