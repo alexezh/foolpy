@@ -49,16 +49,23 @@ train_data = DataLoader(train_set, 1, shuffle=True, drop_last=True)
 def train(embed_dim):
 
   ntokens = len(datacorpus.dictionary.idx2word)
-  model = RelsAutoencoder(ntokens, embed_dim=embed_dim, hidden_dim=1)
-  optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-  loss_fn = nn.CrossEntropyLoss()  # Use token IDs as targets
+  # model = RelsAutoencoder(ntokens, embed_dim=embed_dim, hidden_dim=1)
 
-  for epoch in range(30):
+  embedding = nn.Embedding(ntokens, embed_dim)
+  optimizer = torch.optim.Adam(embedding.parameters(), lr=1e-4)
+  # loss_fn = nn.CrossEntropyLoss()  # Use token IDs as targets
+  loss_fn = nn.MSELoss();
+
+  for epoch in range(40):
       for src, tgt in train_data:
-          inputs = src   # assume [batch_size, seq_len] of token IDs
-          outputs = model(inputs)  # [batch, seq_len, vocab_size]
+          # inputs = src   # assume [batch_size, seq_len] of token IDs
 
-          loss = loss_fn(outputs.view(-1, ntokens), tgt.view(-1))
+          emb_src = embedding(src)
+          emb_tgt = embedding(tgt)
+          # outputs = model(inputs)  # [batch, seq_len, vocab_size]
+
+          # loss = loss_fn(outputs.view(-1, ntokens), tgt.view(-1))
+          loss = loss_fn(emb_src, emb_tgt);
 
           optimizer.zero_grad()
           loss.backward()
@@ -66,5 +73,5 @@ def train(embed_dim):
 
       print(f"Epoch {epoch} Loss: {loss.item():.4f}")
 
-  embedding_weights = model.embedding.state_dict()
+  embedding_weights = embedding.state_dict()
   return embedding_weights

@@ -104,12 +104,12 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
 
     model = PositionSelector(args, ntokens, embedding_weight).to(device)
 
-    # pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
-    # criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-    criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    # criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
     #criterion = nn.CrossEntropyLoss()
 
     return model

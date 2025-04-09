@@ -1,7 +1,7 @@
 class Args:
     def __init__(self):
         # embedding size, 200 default
-        self.emsize = 4;
+        self.emsize = 5;
         self.nhead = 8;
         # number of neurons per layer
         self.nhid = 64;

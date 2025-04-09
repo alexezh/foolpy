@@ -29,6 +29,9 @@ def makeRels(o: List[str]):
     o.append(f"{v} is countable")
 
   # sum of two vars is undefined???
+  # sum is function, val(v) is function, sum relate count, quantity
+  # but then I need weights for this rels, which we learn
+
 
 def makeBasic(o: List[str]):
   for a in range(0, 9):
