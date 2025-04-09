@@ -1,12 +1,12 @@
 class Args:
     def __init__(self):
         # embedding size, 200 default
-        self.emsize = 16;
+        self.emsize = 4;
         self.nhead = 8;
         # number of neurons per layer
         self.nhid = 64;
         # number of layers
-        self.nlayers = 1;
+        self.nlayers = 2;
         # small model
         self.dropout = 0.3;
         self.seed = 42;

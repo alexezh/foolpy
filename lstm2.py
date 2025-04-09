@@ -59,11 +59,15 @@ import torch
 import torch.nn as nn
 
 class PositionSelector(nn.Module):
-    def __init__(self, args: Args):
+    def __init__(self, args: Args, ntokens, embedding_weight):
         super(PositionSelector, self).__init__()
         
+        self.embedding = nn.Embedding(ntokens, args.emsize)
+        self.embedding.load_state_dict(embedding_weight)
+        self.embedding.weight.requires_grad = False
+
         # Define the LSTM layer
-        self.lstm = nn.LSTM(input_size=1,  # Input size is 1 as we're not using embeddings
+        self.lstm = nn.LSTM(input_size=args.emsize,  # Input size is 1 as we're not using embeddings
                             hidden_size=args.nhid,
                             num_layers=args.nlayers,
                             batch_first=True)
@@ -72,12 +76,14 @@ class PositionSelector(nn.Module):
         self.fc = nn.Linear(args.nhid, args.bptt)
     
     def forward(self, x):
+        embedded = self.embedding(x)
+        
         # x has shape [batch_size, seq_len]
         # We need to reshape it to [batch_size, seq_len, 1] for LSTM
-        x = x.unsqueeze(-1).float()  # Add a dimension and convert to float
+        # x = x.unsqueeze(-1).float()  # Add a dimension and convert to float
         
         # Pass through LSTM
-        lstm_out, (hn, cn) = self.lstm(x)
+        lstm_out, (hn, cn) = self.lstm(embedded)
         
         # Use the last hidden state for prediction
         out = self.fc(lstm_out[:, -1, :])  # Get the output of the last timestep
@@ -92,18 +98,18 @@ optimizer = None
 device = None
 model = None
 
-def initialize(args: Args, _device, ntokens):
+def initialize(args: Args, _device, ntokens, embedding_weight):
     global optimizer, criterion, device, model
     device = _device
 
-    model = PositionSelector(args).to(device)
+    model = PositionSelector(args, ntokens, embedding_weight).to(device)
 
     # pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
     # criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
     #criterion = nn.CrossEntropyLoss()
 
     return model

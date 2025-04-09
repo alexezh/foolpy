@@ -75,13 +75,13 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = False
+runTrain = True
 runTest = False
 
 # relModel = rels.initialize();
-rels.train()
+embedding_weight = rels.train(args.emsize)
 
-model = lstm2.initialize(args, device, ntokens)
+model = lstm2.initialize(args, device, ntokens, embedding_weight)
 
 if runTrain:
     trainEpoc()

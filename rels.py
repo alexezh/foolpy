@@ -43,17 +43,17 @@ class RelsAutoencoder(nn.Module):
 eval_batch_size = 10;
 rels = [];
 data.makeRels(rels);
-train = datacorpus.TokenizedDataset.makeRel(rels, datacorpus.dictionary.word2idx, 1)
-train_data = DataLoader(train, 1, shuffle=True, drop_last=True)
+train_set = datacorpus.TokenizedDataset.makeRel(rels, datacorpus.dictionary.word2idx, 1)
+train_data = DataLoader(train_set, 1, shuffle=True, drop_last=True)
 
-def train():
+def train(embed_dim):
 
   ntokens = len(datacorpus.dictionary.idx2word)
-  model = RelsAutoencoder(ntokens, embed_dim=5, hidden_dim=1)
-  optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+  model = RelsAutoencoder(ntokens, embed_dim=embed_dim, hidden_dim=1)
+  optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
   loss_fn = nn.CrossEntropyLoss()  # Use token IDs as targets
 
-  for epoch in range(10):
+  for epoch in range(30):
       for src, tgt in train_data:
           inputs = src   # assume [batch_size, seq_len] of token IDs
           outputs = model(inputs)  # [batch, seq_len, vocab_size]
