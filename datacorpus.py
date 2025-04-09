@@ -36,13 +36,11 @@ def tokenizeToWords(value, word2idx):
     return o;
 
 class TokenizedDataset(Dataset):
-    def __init__(self, sentenses, word2idx, max_length=10):
+    def __init__(self, word2idx, max_length=10):
       self.questions = []
       self.answers = []
       self.word2idx = word2idx
       self.max_length = max_length
-
-      self.asMask(sentenses);
 
     def asQuestionAnswer(self, sentenses): 
       for sentense in sentenses:
@@ -50,7 +48,9 @@ class TokenizedDataset(Dataset):
         self.questions.append(tokenizeToIds(parts[0], self.word2idx));
         self.answers.append(tokenizeToIds(parts[1], self.word2idx));
 
-    def asMask(self, sentenses): 
+    @staticmethod
+    def makeMask(sentenses, word2idx, max_length=10): 
+      self = TokenizedDataset(word2idx, max_length);
       for sentense in sentenses:
         parts = sentense.split("=>")
         self.questions.append(tokenizeToIds(parts[0], self.word2idx));
@@ -68,7 +68,17 @@ class TokenizedDataset(Dataset):
             mask.append(0)
 
         self.answers.append(mask);
+      return self;
     
+    @staticmethod
+    def makeRel(sentenses, word2idx, max_length=10): 
+      self = TokenizedDataset(word2idx, max_length);
+      for sentense in sentenses:
+        parts = sentense.split("is")
+        self.questions.append(tokenizeToIds(parts[0], self.word2idx));
+        self.answers.append(tokenizeToIds(parts[1], self.word2idx));
+      return self;
+
     def __len__(self):
         return len(self.questions)
 
@@ -89,6 +99,37 @@ class Dictionary(object):
         self.word2idx = {}
         self.idx2word = []
 
+        self.add_word('<pad>');
+        self.add_word('<eos>');
+        self.add_word('#');
+        self.add_word('=>');
+        self.add_word('none');
+        self.add_word('quantity');
+        self.add_word('symbol');
+        self.add_word('countable');
+        self.add_word('number');
+        self.add_word('digit');
+        self.add_word('variable');
+        self.add_word('wrong');
+        self.add_word('is');
+        self.add_word('+');
+        self.add_word('-');
+        self.add_word('0');
+        self.add_word('1');
+        self.add_word('2');
+        self.add_word('3');
+        self.add_word('4');
+        self.add_word('5');
+        self.add_word('6');
+        self.add_word('7');
+        self.add_word('8');
+        self.add_word('9');
+        self.add_word('a');
+        self.add_word('b');
+        self.add_word('c');
+        self.add_word('d');
+        self.add_word('e');        
+
     def add_word(self, word):
         if word not in self.word2idx:
             self.idx2word.append(word)
@@ -98,6 +139,8 @@ class Dictionary(object):
     def __len__(self):
         return len(self.idx2word)
 
+dictionary = Dictionary();
+
 def randNum(max, other):
   while True:
     val = random.randint(0, max)
@@ -106,35 +149,8 @@ def randNum(max, other):
 
 class Corpus(object):
     def __init__(self, max_length):
-        self.dictionary = Dictionary()
-        
-        self.dictionary.add_word('<pad>');
-        self.dictionary.add_word('<eos>');
-        self.dictionary.add_word('#');
-        self.dictionary.add_word('=>');
-        self.dictionary.add_word('none');
-        self.dictionary.add_word('number');
-        self.dictionary.add_word('digit');
-        self.dictionary.add_word('wrong');
-        self.dictionary.add_word('is');
-        self.dictionary.add_word('+');
-        self.dictionary.add_word('-');
-        self.dictionary.add_word('0');
-        self.dictionary.add_word('1');
-        self.dictionary.add_word('2');
-        self.dictionary.add_word('3');
-        self.dictionary.add_word('4');
-        self.dictionary.add_word('5');
-        self.dictionary.add_word('6');
-        self.dictionary.add_word('7');
-        self.dictionary.add_word('8');
-        self.dictionary.add_word('9');
-        self.dictionary.add_word('a');
-        self.dictionary.add_word('b');
-        self.dictionary.add_word('c');
-        self.dictionary.add_word('d');
-        self.dictionary.add_word('e');
-
+        self.dictionary = dictionary
+      
         basic = []
         makeBasic(basic);
 
@@ -146,13 +162,10 @@ class Corpus(object):
         train.extend(basic);
   
         full.extend(basic);
-        valid = random.sample(full, math.floor(len(full) * 0.15))  # Randomly select 3 elements
-
         test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
 
-        self.train = TokenizedDataset(train, self.dictionary.word2idx, max_length)
-        self.valid = TokenizedDataset(valid, self.dictionary.word2idx, max_length)
-        self.test = TokenizedDataset(test, self.dictionary.word2idx, max_length)
+        self.train = TokenizedDataset.makeMask(train, self.dictionary.word2idx, max_length)
+        self.test = TokenizedDataset.makeMask(test, self.dictionary.word2idx, max_length)
 
     def tokenize(self, str):
       ids = []

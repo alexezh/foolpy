@@ -8,6 +8,28 @@ from typing import List
 
 vars = ['a', 'b', 'c', 'd', 'e'];
 
+def makeRels(o: List[str]):
+  for a in range(0, 9):
+    o.append(f"{a} is {a}")
+    o.append(f"{a} is digit")
+    o.append(f"{a} is quantity")
+
+  for a in range(0, 99):
+    o.append(f"{a} is {a}")
+    o.append(f"{a} is number")
+    o.append(f"{a} is quantity")
+
+  o.append(f"number is quantity")
+  o.append(f"digit is quantity")
+  o.append(f"digit is number")
+
+  for v in vars:
+    o.append(f"{v} is {v}")
+    o.append(f"{v} is symbol")
+    o.append(f"{v} is countable")
+
+  # sum of two vars is undefined???
+
 def makeBasic(o: List[str]):
   for a in range(0, 9):
     for b in range(0, 9):

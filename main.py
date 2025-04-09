@@ -1,3 +1,4 @@
+from random import randint
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -11,7 +12,9 @@ from args import Args
 # import v2v;
 import datacorpus
 import lstm2;
-import data;
+import data
+import rels;
+
 
 # code is based on
 # https://github.com/pytorch/examples/blob/main/word_language_model/main.py
@@ -74,6 +77,9 @@ def trainEpoc():
 
 runTrain = False
 runTest = False
+
+# relModel = rels.initialize();
+rels.train()
 
 model = lstm2.initialize(args, device, ntokens)
 

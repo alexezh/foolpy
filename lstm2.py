@@ -8,6 +8,25 @@ import torch.nn.functional as F
 from args import Args
 from datacorpus import Corpus
 
+class ArithmeticEmbeddingLayer(nn.Module):
+    def __init__(self, vocab_size, embedding_dim):
+        super(ArithmeticEmbeddingLayer, self).__init__()
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        
+        # Manually initialize some relationships if desired
+        # For example, we might want to initialize embeddings for certain words/entities.
+        # You can initialize embeddings based on some prior knowledge about the relationships.
+        # e.g., For entities "X" and "Y", their embeddings should be close to each other.
+        # You can set specific values manually.
+        
+        # Example: Initializing embeddings for known relationships
+        # If X is at index 0 and Y is at index 1, we can set their embeddings close
+        self.embedding.weight.data[0] = torch.tensor([1.0, 0.5, 0.1])  # Embedding for X
+        self.embedding.weight.data[1] = torch.tensor([1.1, 0.6, 0.1])  # Embedding for Y
+
+    def forward(self, x):
+        return self.embedding(x)
+    
 """ class PositionSelector(nn.Module):
     def __init__(self, vocab_size, args: Args):
         super(PositionSelector, self).__init__()
