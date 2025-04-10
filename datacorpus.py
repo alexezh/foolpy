@@ -35,7 +35,7 @@ def tokenizeToWords(value, word2idx):
     
     return o;
 
-class TokenizedDataset(Dataset):
+class QADataset(Dataset):
     def __init__(self, word2idx, max_length=10):
       self.questions = []
       self.answers = []
@@ -48,9 +48,31 @@ class TokenizedDataset(Dataset):
         self.questions.append(tokenizeToIds(parts[0], self.word2idx));
         self.answers.append(tokenizeToIds(parts[1], self.word2idx));
 
+    def __len__(self):
+        return len(self.questions)
+
+    def __getitem__(self, idx):
+        # Pad or truncate to max_length
+        # input = self.content[idx]
+        # target = input[1 : len(input)-1] 
+        
+        input = self.questions[idx]
+        target = self.answers[idx];
+        input = input[:self.max_length] + [0] * (self.max_length - len(input))
+        target = target[:self.max_length] + [0] * (self.max_length - len(target))
+
+        return torch.tensor(input, dtype=torch.long), torch.tensor(target, dtype=torch.long)
+    
+class MaskDataset(Dataset):
+    def __init__(self, word2idx, max_length=10):
+      self.questions = []
+      self.answers = []
+      self.word2idx = word2idx
+      self.max_length = max_length
+
     @staticmethod
     def makeMask(sentenses, word2idx, max_length=10): 
-      self = TokenizedDataset(word2idx, max_length);
+      self = MaskDataset(word2idx, max_length);
       for sentense in sentenses:
         parts = sentense.split("=>")
         self.questions.append(tokenizeToIds(parts[0], self.word2idx));
@@ -72,7 +94,7 @@ class TokenizedDataset(Dataset):
     
     @staticmethod
     def makeRel(sentenses, word2idx, max_length=10): 
-      self = TokenizedDataset(word2idx, max_length);
+      self = QADataset(word2idx, max_length);
       for sentense in sentenses:
         parts = sentense.split("is")
         self.questions.append(tokenizeToIds(parts[0], self.word2idx));
@@ -89,11 +111,12 @@ class TokenizedDataset(Dataset):
         
         input = self.questions[idx]
         target = self.answers[idx];
+        input_len = len(input)
         input = input[:self.max_length] + [0] * (self.max_length - len(input))
         target = target[:self.max_length] + [0] * (self.max_length - len(target))
 
-        return torch.tensor(input, dtype=torch.long), torch.tensor(target, dtype=torch.long)
-    
+        return torch.tensor(input, dtype=torch.long), torch.tensor(target, dtype=torch.long), torch.tensor([input_len]), torch.tensor([target.count(1)])
+
 class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
@@ -164,8 +187,8 @@ class Corpus(object):
         full.extend(basic);
         test = random.sample(full, math.floor(len(full) * 0.20))  # Randomly select 3 elements
 
-        self.train = TokenizedDataset.makeMask(train, self.dictionary.word2idx, max_length)
-        self.test = TokenizedDataset.makeMask(test, self.dictionary.word2idx, max_length)
+        self.train = MaskDataset.makeMask(train, self.dictionary.word2idx, max_length)
+        self.test = MaskDataset.makeMask(test, self.dictionary.word2idx, max_length)
 
     def tokenize(self, str):
       ids = []

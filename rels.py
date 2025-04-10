@@ -40,10 +40,9 @@ class RelsAutoencoder(nn.Module):
 
         return logits.view(batch_size, seq_len, -1)  # [batch_size, seq_len, vocab_size]
 
-eval_batch_size = 10;
 rels = [];
 data.makeRels(rels);
-train_set = datacorpus.TokenizedDataset.makeRel(rels, datacorpus.dictionary.word2idx, 1)
+train_set = datacorpus.MaskDataset.makeRel(rels, datacorpus.dictionary.word2idx, 1)
 train_data = DataLoader(train_set, 1, shuffle=True, drop_last=True)
 
 def train(embed_dim):

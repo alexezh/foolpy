@@ -55,9 +55,6 @@ class ArithmeticEmbeddingLayer(nn.Module):
     
  """    
 
-import torch
-import torch.nn as nn
-
 class PositionSelector(nn.Module):
     def __init__(self, args: Args, ntokens, embedding_weight):
         super(PositionSelector, self).__init__()
@@ -74,42 +71,56 @@ class PositionSelector(nn.Module):
         
         # Fully connected layer to map to output
         self.fc = nn.Linear(args.nhid, args.bptt)
+        self.loss_weight = nn.Parameter(torch.tensor(1.0).to(device)) 
     
-    def forward(self, x):
+    def forward(self, x, lengths):
         embedded = self.embedding(x)
         
         # x has shape [batch_size, seq_len]
         # We need to reshape it to [batch_size, seq_len, 1] for LSTM
         # x = x.unsqueeze(-1).float()  # Add a dimension and convert to float
         
+        # lengths = lengths.view(-1);
+
+        #sorted_lengths, sorted_idx = lengths.sort(0, descending=True)
+        #embedded = embedded[sorted_idx]  # Reorder embeddings based on sorted lengths
+
+        #packed_input = torch.nn.utils.rnn.pack_padded_sequence(embedded, lengths, batch_first=True, enforce_sorted=False)
+                
         # Pass through LSTM
         lstm_out, (hn, cn) = self.lstm(embedded)
         
+        #lstm_out, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
+                
         # Use the last hidden state for prediction
         out = self.fc(lstm_out[:, -1, :])  # Get the output of the last timestep
 
         # Apply sigmoid to produce values between 0 and 1 for position selection (binary)
         # out = torch.sigmoid(out)  # Output will be in the range [0, 1]
-                
-        return out
+        res = (out > 0.5).int()   
+        aux_out = (res == 1).sum(dim=1).float().unsqueeze(1);
+    
+        return out, aux_out
 
 criterion = None
+aux_criterion = None
 optimizer = None
 device = None
 model = None
 
 def initialize(args: Args, _device, ntokens, embedding_weight):
-    global optimizer, criterion, device, model
+    global optimizer, criterion, device, model, aux_criterion
     device = _device
 
     model = PositionSelector(args, ntokens, embedding_weight).to(device)
 
     pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    aux_criterion = nn.MSELoss()
     # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
     # criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
     #criterion = nn.CrossEntropyLoss()
 
     return model
@@ -142,18 +153,26 @@ def train(train_data, epoch, args: Args):
     start_time = time.time()
     
     batchIdx = 0;
-    for src, tgt in train_data:
+    for src, tgt, srclen, aux_tgt in train_data:
         src = src.to(device)
         tgt = tgt.float().to(device)
+        # len = len.to(device)
+        aux_tgt = aux_tgt.float().to(device)
 
         optimizer.zero_grad()
-        probs = model(src)  # [batch, seq_len]
+        probs, aux = model(src, srclen)  # [batch, seq_len]
 
         # Flatten outputs and targets for loss calculation
         probs = probs.view(-1)  # Flatten to shape [batch_size * seq_len]
         tgt = tgt.view(-1) 
 
         loss = criterion(probs, tgt)
+        aux_loss = aux_criterion(aux.view(-1), aux_tgt.view(-1))
+
+        # Learnable weight (scaled with exp to keep positive)
+        weight = torch.exp(model.loss_weight)
+        total_loss = loss + weight * aux_loss
+
         loss.backward()
         optimizer.step()
 
