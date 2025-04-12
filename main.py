@@ -75,11 +75,18 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = True
+runTrain = False
+trainEmbedding = False
 runTest = False
 
 # relModel = rels.initialize();
-embedding_weight = rels.train(args.emsize)
+embedding_weight = None
+if trainEmbedding:
+    embedding_weight = rels.train(args.emsize)
+    torch.save(embedding_weight, args.relsFile)
+else:
+    with open(args.relsFile, 'rb') as f:
+        embedding_weight = torch.load(f)
 
 model = lstm2.initialize(args, device, ntokens, embedding_weight)
 

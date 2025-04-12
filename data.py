@@ -62,6 +62,20 @@ def makeSums(o: List[str]):
 
   for a in range(0, 99):
     for b in range(0, 99):
+      if a + b > 99 or (a < 10 and b < 10): 
+         continue
+      o.append(f"{a} {b} => 0 0");
+
+  for a in range(0, 99):
+    for b in range(0, 99):
+      for v in vars:
+        o.append(f"{v} + {a} {b} => {v} + 0 0");
+        o.append(f"{v} {a} {b} => {v} 0  0");
+        o.append(f"{v} {a} + {b} => {v} 0 + 0");
+        o.append(f"{v} {a} - {b} => {v} 0 - 0");
+
+  for a in range(0, 99):
+    for b in range(0, 99):
       for v in vars:
         o.append(f"{v} + {a} + {b} => {v} + #{a} #+ #{b}");
         o.append(f"{a} + {v} + {b} => #{a} + {v} #+ #{b}");

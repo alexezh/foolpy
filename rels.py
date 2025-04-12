@@ -55,7 +55,7 @@ def train(embed_dim):
   # loss_fn = nn.CrossEntropyLoss()  # Use token IDs as targets
   loss_fn = nn.MSELoss();
 
-  for epoch in range(40):
+  for epoch in range(1000):
       for src, tgt in train_data:
           # inputs = src   # assume [batch_size, seq_len] of token IDs
 

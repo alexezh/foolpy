@@ -17,9 +17,10 @@ class Args:
         # sequence length
         self.bptt = 32
         self.clip = 0.25
-        self.log_interval = 100
+        self.log_interval = 500
         self.dry_run = False
         self.save = "model.pt"
+        self.relsFile = "rels.pt"
         self.onnx_export = False
         self.temperature = 1.0
         self.cuda = False;

@@ -8,7 +8,7 @@ import torch.nn.functional as F
 from args import Args
 from datacorpus import Corpus
 
-class ArithmeticEmbeddingLayer(nn.Module):
+""" class ArithmeticEmbeddingLayer(nn.Module):
     def __init__(self, vocab_size, embedding_dim):
         super(ArithmeticEmbeddingLayer, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
@@ -26,7 +26,7 @@ class ArithmeticEmbeddingLayer(nn.Module):
 
     def forward(self, x):
         return self.embedding(x)
-    
+ """    
 """ class PositionSelector(nn.Module):
     def __init__(self, vocab_size, args: Args):
         super(PositionSelector, self).__init__()
@@ -64,18 +64,31 @@ class PositionSelector(nn.Module):
         self.embedding.weight.requires_grad = False
 
         # Define the LSTM layer
-        self.lstm = nn.LSTM(input_size=args.emsize,  # Input size is 1 as we're not using embeddings
-                            hidden_size=args.nhid,
-                            num_layers=args.nlayers,
-                            batch_first=True)
+        #self.lstm = nn.LSTM(input_size=args.emsize,  # Input size is 1 as we're not using embeddings
+        #                    hidden_size=args.nhid,
+        #                    num_layers=args.nlayers,
+        #                    batch_first=True)
         
         # Fully connected layer to map to output
-        self.fc = nn.Linear(args.nhid, args.bptt)
-        self.loss_weight = nn.Parameter(torch.tensor(1.0).to(device)) 
+        # self.fc = nn.Linear(args.nhid, args.bptt)
+        self.fc1 = nn.Linear(args.emsize, args.nhid)  # First hidden layer
+        self.fc2 = nn.Linear(args.nhid, args.nhid)  # Second hidden layer
+        self.fc3 = nn.Linear(args.nhid, 1)  # Output layer (binary classification)
+
+        # self.loss_weight = nn.Parameter(torch.tensor(1.0, dtype=torch.float32).to(device)) 
     
     def forward(self, x, lengths):
         embedded = self.embedding(x)
         
+        # embedded_flat = embedded.view(embedded.size(0) * embedded.size(1), -1)  # [batch_size * seq_len, embedding_dim]
+
+        hidden1 = torch.relu(self.fc1(embedded))  # Apply ReLU activation to first hidden layer
+        hidden2 = torch.relu(self.fc2(hidden1))  # Apply ReLU to second hidden layer
+        out = self.fc3(hidden2)  # Get the raw output
+        
+        # out = out.squeeze(-1);
+        # out = out.view(x.size(0), x.size(1))
+                  
         # x has shape [batch_size, seq_len]
         # We need to reshape it to [batch_size, seq_len, 1] for LSTM
         # x = x.unsqueeze(-1).float()  # Add a dimension and convert to float
@@ -88,16 +101,16 @@ class PositionSelector(nn.Module):
         #packed_input = torch.nn.utils.rnn.pack_padded_sequence(embedded, lengths, batch_first=True, enforce_sorted=False)
                 
         # Pass through LSTM
-        lstm_out, (hn, cn) = self.lstm(embedded)
+        # lstm_out, (hn, cn) = self.lstm(embedded)
         
         #lstm_out, _ = torch.nn.utils.rnn.pad_packed_sequence(packed_output, batch_first=True)
                 
         # Use the last hidden state for prediction
-        out = self.fc(lstm_out[:, -1, :])  # Get the output of the last timestep
+        # out = self.fc(lstm_out[:, -1, :])  # Get the output of the last timestep
 
         # Apply sigmoid to produce values between 0 and 1 for position selection (binary)
         # out = torch.sigmoid(out)  # Output will be in the range [0, 1]
-        res = (out > 0.5).int()   
+        res = (torch.sigmoid(out.squeeze(-1)) > 0.5).int()   
         aux_out = (res == 1).sum(dim=1).float().unsqueeze(1);
     
         return out, aux_out
@@ -115,12 +128,12 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
     model = PositionSelector(args, ntokens, embedding_weight).to(device)
 
     pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     aux_criterion = nn.MSELoss()
     # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-    # criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.00001)
     #criterion = nn.CrossEntropyLoss()
 
     return model
@@ -128,17 +141,19 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
 
 def complete(text: str, args: Args, corpus: Corpus):
     input = corpus.tokenize(text);
+    input_len = len(input)
     input = input[:args.bptt] + [0] * (args.bptt - len(input))
 
     #input = torch.tensor(input).type(torch.int64)
     #input = input.reshape(-1, 1).to(device)
     input = torch.tensor([input]).to(device)
+    input_len = torch.tensor([input_len]).to(device)
 
     # Turn on evaluation mode which disables dropout.
     model.eval()
 
     with torch.no_grad():
-        output = model(input)
+        output, output_len = model(input, input_len)
         print(output.shape)
 
         res = (output > 0.5).int().view(-1)   
@@ -149,7 +164,7 @@ def complete(text: str, args: Args, corpus: Corpus):
 def train(train_data, epoch, args: Args):
     # Turn on training mode which enables dropout.
     model.train()
-    total_loss = 0.
+    batch_loss = 0.
     start_time = time.time()
     
     batchIdx = 0;
@@ -167,30 +182,31 @@ def train(train_data, epoch, args: Args):
         tgt = tgt.view(-1) 
 
         loss = criterion(probs, tgt)
-        aux_loss = aux_criterion(aux.view(-1), aux_tgt.view(-1))
+        # flatten aux also
+        aux_loss = aux_criterion(aux.view(-1).float(), aux_tgt.view(-1))
+        aux_loss = torch.sigmoid(aux_loss)
 
         # Learnable weight (scaled with exp to keep positive)
-        weight = torch.exp(model.loss_weight)
-        total_loss = loss + weight * aux_loss
+        # weight = torch.sigmoid(model.loss_weight)
+        total_loss = loss + 0.3 * aux_loss
 
-        loss.backward()
+        total_loss.backward()
         optimizer.step()
 
-        total_loss += loss.item()
+        batch_loss += total_loss.item()
         
         batchIdx += 1
 
         if batchIdx % args.log_interval == 0 and batchIdx > 0:
-            cur_loss = total_loss / args.log_interval
+            cur_loss = batch_loss / args.log_interval
             elapsed = time.time() - start_time
-            print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | '
-                    'loss {:5.2f} | ppl {:8.2f}'.format(
+            print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | loss {:5.2f} | {}'.format(
                 epoch, batchIdx, len(train_data.dataset) // args.batch_size, 
-                elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
+                elapsed * 1000 / args.log_interval, cur_loss, str(aux_loss)))
             start_time = time.time()
-            total_loss = 0;
+            batch_loss = 0;
 
-    return total_loss
+    return batch_loss
 
 
 #loss_weights = torch.ones(len(corpus.dictionary.word2idx)).to(device)

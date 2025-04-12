@@ -2,6 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
+# blocks
+# store, read - stack with n-1 access? As before?
+# but I need to train arithmetic first. maybe adding "not sequence"
+# will help. 
+
 # Simple feedforward model
 class CountModel(nn.Module):
     def __init__(self, input_size):
