@@ -110,9 +110,11 @@ class PositionSelector(nn.Module):
 
         # Apply sigmoid to produce values between 0 and 1 for position selection (binary)
         # out = torch.sigmoid(out)  # Output will be in the range [0, 1]
-        res = (torch.sigmoid(out.squeeze(-1)) > 0.5).int()   
-        aux_out = (res == 1).sum(dim=1).float().unsqueeze(1);
-    
+        # res = (torch.sigmoid(out.squeeze(-1)) > 0.5).int()   
+        # aux_out = (res == 1).sum(dim=1).float().unsqueeze(1);
+        res = torch.sigmoid(out.squeeze(-1))
+        aux_out = res.sum(dim=1, keepdim=True)
+
         return out, aux_out
 
 criterion = None
@@ -188,7 +190,7 @@ def train(train_data, epoch, args: Args):
 
         # Learnable weight (scaled with exp to keep positive)
         # weight = torch.sigmoid(model.loss_weight)
-        total_loss = loss + 0.3 * aux_loss
+        total_loss = loss + 0.7 * aux_loss
 
         total_loss.backward()
         optimizer.step()
@@ -202,7 +204,7 @@ def train(train_data, epoch, args: Args):
             elapsed = time.time() - start_time
             print('| epoch {:3d} | {:5d}/{:5d} batches | ms/batch {:5.2f} | loss {:5.2f} | {}'.format(
                 epoch, batchIdx, len(train_data.dataset) // args.batch_size, 
-                elapsed * 1000 / args.log_interval, cur_loss, str(aux_loss)))
+                elapsed * 1000 / args.log_interval, cur_loss, str(aux_loss.item())))
             start_time = time.time()
             batch_loss = 0;
 
