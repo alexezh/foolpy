@@ -75,10 +75,15 @@ class PositionSelector(nn.Module):
         #                    num_layers=args.nlayers,
         #                    batch_first=True)
         
+        self.conv1 = nn.Conv1d(in_channels=args.emsize,
+                               out_channels=args.nhid,
+                               kernel_size=args.kernel_size,
+                               padding=args.kernel_size // 2)  # to preserve seq length
+                
         # Fully connected layer to map to output
         # self.fc = nn.Linear(args.nhid, args.bptt)
-        self.fc1 = nn.Linear(args.emsize, args.nhid)  # First hidden layer
-        self.fc2 = nn.Linear(args.nhid, args.nhid)  # Second hidden layer
+        self.fc1 = nn.Linear(args.nhid, args.nhid)  # First hidden layer
+        # self.fc2 = nn.Linear(args.emsize, args.nhid)  # Second hidden layer
         self.fc3 = nn.Linear(args.nhid, 1)  # Output layer (binary classification)
 
         # self.loss_weight = nn.Parameter(torch.tensor(1.0, dtype=torch.float32).to(device)) 
@@ -87,10 +92,13 @@ class PositionSelector(nn.Module):
         embedded = self.embedding(x)
         
         # embedded_flat = embedded.view(embedded.size(0) * embedded.size(1), -1)  # [batch_size * seq_len, embedding_dim]
+        conv_input = embedded.permute(0, 2, 1) 
+        conv_out = F.relu(self.conv1(conv_input))        # [batch, hidden_dim, seq_len]
+        conv_out = conv_out.permute(0, 2, 1) 
 
-        hidden1 = torch.relu(self.fc1(embedded))  # Apply ReLU activation to first hidden layer
-        hidden2 = torch.relu(self.fc2(hidden1))  # Apply ReLU to second hidden layer
-        out = self.fc3(hidden2)  # Get the raw output
+        hidden1 = torch.relu(self.fc1(conv_out))  # Apply ReLU activation to first hidden layer
+        # hidden2 = torch.relu(self.fc2(hidden1))  # Apply ReLU to second hidden layer
+        out = self.fc3(hidden1)  # Get the raw output
         
         # out = out.squeeze(-1);
         # out = out.view(x.size(0), x.size(1))
@@ -147,28 +155,6 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
 
     return model
 
-
-def complete(text: str, args: Args, corpus: Corpus):
-    input = corpus.tokenize(text);
-    input = input[:args.bptt] + [0] * (args.bptt - len(input))
-
-    #input = torch.tensor(input).type(torch.int64)
-    #input = input.reshape(-1, 1).to(device)
-    input = torch.tensor([input]).to(device)
-    # input_len = torch.tensor([input_len]).to(device)
-
-    # Turn on evaluation mode which disables dropout.
-    model.eval()
-
-    with torch.no_grad():
-        output, output_len = model(input)
-        print(output.shape)
-
-        res = (output > 0.5).int().view(-1)   
-
-        print(res);
-
-
 def train(train_data, epoch, args: Args):
     # Turn on training mode which enables dropout.
     model.train()
@@ -217,6 +203,25 @@ def train(train_data, epoch, args: Args):
 
     return batch_loss
 
+def complete(text: str, args: Args, corpus: Corpus):
+    input = corpus.tokenize(text);
+    input = input[:args.bptt] + [0] * (args.bptt - len(input))
+
+    #input = torch.tensor(input).type(torch.int64)
+    #input = input.reshape(-1, 1).to(device)
+    input = torch.tensor([input]).to(device)
+    # input_len = torch.tensor([input_len]).to(device)
+
+    # Turn on evaluation mode which disables dropout.
+    model.eval()
+
+    with torch.no_grad():
+        output, output_len = model(input)
+        print(output.shape)
+
+        res = (output > 0.5).int().view(-1)   
+
+        print(res);
 
 #loss_weights = torch.ones(len(corpus.dictionary.word2idx)).to(device)
 #loss_weights[corpus.dictionary.word2idx['<eos>']] = 5.0

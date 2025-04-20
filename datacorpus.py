@@ -170,6 +170,15 @@ def randNum(max, other):
     if val != other:
       return val
 
+class Corpus2(object):
+    def __init__(self, max_length):
+        self.dictionary = dictionary
+
+        basic = []
+        makeBasic(basic);
+  
+        self.train = MaskDataset.makeMask(train, self.dictionary.word2idx, max_length)
+
 class Corpus(object):
     def __init__(self, max_length):
         self.dictionary = dictionary
