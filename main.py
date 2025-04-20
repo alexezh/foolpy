@@ -40,7 +40,7 @@ else:
     device = torch.device("cpu")
 
 
-corpus = datacorpus.Corpus(args.bptt)
+corpus = datacorpus.Corpus(args.seq_length)
 
 eval_batch_size = 10;
 train_data = DataLoader(corpus.train, args.batch_size, shuffle=True, drop_last=True)

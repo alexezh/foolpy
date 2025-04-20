@@ -61,6 +61,36 @@ def binary_concrete(logits, temperature=0.1):
     
  """    
 
+# class PositionalLinear(nn.Module):
+#     def __init__(self, seq_len, in_features):
+#         super().__init__()
+#         self.position_embeddings = nn.Embedding(seq_len, in_features)
+
+#     def forward(self, x):
+#         batch_size, seq_len, in_features = x.size()
+#         pos_ids = torch.arange(seq_len, device=x.device).unsqueeze(0).expand(batch_size, seq_len)
+#         pos_embed = self.position_embeddings(pos_ids)
+#         return x + pos_embed
+class PositionalLinear(nn.Module):
+    def __init__(self, seq_len, input_dim, output_dim):
+        super().__init__()
+        self.seq_len = seq_len
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+        # One linear layer per position
+        self.weights = nn.Parameter(torch.randn(seq_len, input_dim, output_dim))
+        self.biases = nn.Parameter(torch.zeros(seq_len, output_dim))
+
+    def forward(self, x):
+        # x: [batch_size, seq_len, input_dim]
+        batch_size = x.size(0)
+        seq_len = x.size(1)
+
+        # Apply the positional linear transformation
+        out = torch.einsum('bsi,sio->bso', x, self.weights) + self.biases
+        return out    
+
 class PositionSelector(nn.Module):
     def __init__(self, args: Args, ntokens, embedding_weight):
         super(PositionSelector, self).__init__()
@@ -75,11 +105,13 @@ class PositionSelector(nn.Module):
         #                    num_layers=args.nlayers,
         #                    batch_first=True)
         
-        self.conv1 = nn.Conv1d(in_channels=args.emsize,
-                               out_channels=args.nhid,
-                               kernel_size=args.kernel_size,
-                               padding=args.kernel_size // 2)  # to preserve seq length
-                
+        # self.conv1 = nn.Conv1d(in_channels=args.emsize,
+        #                        out_channels=args.nhid,
+        #                        kernel_size=args.kernel_size,
+        #                        padding=args.kernel_size // 2)  # to preserve seq length
+
+        self.pos_linear = PositionalLinear(args.seq_length, args.emsize, args.nhid);
+
         # Fully connected layer to map to output
         # self.fc = nn.Linear(args.nhid, args.bptt)
         self.fc1 = nn.Linear(args.nhid, args.nhid)  # First hidden layer
@@ -92,11 +124,12 @@ class PositionSelector(nn.Module):
         embedded = self.embedding(x)
         
         # embedded_flat = embedded.view(embedded.size(0) * embedded.size(1), -1)  # [batch_size * seq_len, embedding_dim]
-        conv_input = embedded.permute(0, 2, 1) 
-        conv_out = F.relu(self.conv1(conv_input))        # [batch, hidden_dim, seq_len]
-        conv_out = conv_out.permute(0, 2, 1) 
+        # conv_input = embedded.permute(0, 2, 1) 
+        # conv_out = F.relu(self.conv1(conv_input))        # [batch, hidden_dim, seq_len]
+        # conv_out = conv_out.permute(0, 2, 1) 
+        pos_out = self.pos_linear(embedded)
 
-        hidden1 = torch.relu(self.fc1(conv_out))  # Apply ReLU activation to first hidden layer
+        hidden1 = torch.relu(self.fc1(pos_out))  # Apply ReLU activation to first hidden layer
         # hidden2 = torch.relu(self.fc2(hidden1))  # Apply ReLU to second hidden layer
         out = self.fc3(hidden1)  # Get the raw output
         
@@ -205,7 +238,7 @@ def train(train_data, epoch, args: Args):
 
 def complete(text: str, args: Args, corpus: Corpus):
     input = corpus.tokenize(text);
-    input = input[:args.bptt] + [0] * (args.bptt - len(input))
+    input = input[:args.seq_length] + [0] * (args.seq_length - len(input))
 
     #input = torch.tensor(input).type(torch.int64)
     #input = input.reshape(-1, 1).to(device)

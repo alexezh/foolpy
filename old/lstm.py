@@ -69,8 +69,8 @@ def initialize(args: Args, _device):
     global optimizer, criterion, device
     device = _device
 
-    encoder = Encoder(args.bptt, args.emsize, args.nhid).to(device)
-    decoder = Decoder(args.bptt, args.emsize, args.nhid).to(device)
+    encoder = Encoder(args.seq_length, args.emsize, args.nhid).to(device)
+    decoder = Decoder(args.seq_length, args.emsize, args.nhid).to(device)
     model = Seq2Seq(encoder, decoder).to(device)
 
     optimizer = optim.Adam(model.parameters())
