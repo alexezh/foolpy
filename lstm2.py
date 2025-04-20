@@ -8,6 +8,12 @@ import torch.nn.functional as F
 from args import Args
 from datacorpus import Corpus
 
+def binary_concrete(logits, temperature=0.1):
+    noise = torch.rand_like(logits)
+    gumbel = -torch.log(-torch.log(noise + 1e-9) + 1e-9)
+    y = torch.sigmoid((logits + gumbel) / temperature)
+    return y
+
 """ class ArithmeticEmbeddingLayer(nn.Module):
     def __init__(self, vocab_size, embedding_dim):
         super(ArithmeticEmbeddingLayer, self).__init__()
@@ -77,7 +83,7 @@ class PositionSelector(nn.Module):
 
         # self.loss_weight = nn.Parameter(torch.tensor(1.0, dtype=torch.float32).to(device)) 
     
-    def forward(self, x, lengths):
+    def forward(self, x):
         embedded = self.embedding(x)
         
         # embedded_flat = embedded.view(embedded.size(0) * embedded.size(1), -1)  # [batch_size * seq_len, embedding_dim]
@@ -112,7 +118,8 @@ class PositionSelector(nn.Module):
         # out = torch.sigmoid(out)  # Output will be in the range [0, 1]
         # res = (torch.sigmoid(out.squeeze(-1)) > 0.5).int()   
         # aux_out = (res == 1).sum(dim=1).float().unsqueeze(1);
-        res = torch.sigmoid(out.squeeze(-1))
+        # res = torch.sigmoid(out.squeeze(-1) * 10)
+        res = binary_concrete(out.squeeze(-1), temperature=0.1)
         aux_out = res.sum(dim=1, keepdim=True)
 
         return out, aux_out
@@ -129,13 +136,13 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
 
     model = PositionSelector(args, ntokens, embedding_weight).to(device)
 
-    pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
+    # pos_weight = torch.tensor([10.0]).to(device)  # weight ratio = (#zeros / #ones)
     # criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     aux_criterion = nn.MSELoss()
     # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.00001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
     #criterion = nn.CrossEntropyLoss()
 
     return model
@@ -143,19 +150,18 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
 
 def complete(text: str, args: Args, corpus: Corpus):
     input = corpus.tokenize(text);
-    input_len = len(input)
     input = input[:args.bptt] + [0] * (args.bptt - len(input))
 
     #input = torch.tensor(input).type(torch.int64)
     #input = input.reshape(-1, 1).to(device)
     input = torch.tensor([input]).to(device)
-    input_len = torch.tensor([input_len]).to(device)
+    # input_len = torch.tensor([input_len]).to(device)
 
     # Turn on evaluation mode which disables dropout.
     model.eval()
 
     with torch.no_grad():
-        output, output_len = model(input, input_len)
+        output, output_len = model(input)
         print(output.shape)
 
         res = (output > 0.5).int().view(-1)   
@@ -177,7 +183,7 @@ def train(train_data, epoch, args: Args):
         aux_tgt = aux_tgt.float().to(device)
 
         optimizer.zero_grad()
-        probs, aux = model(src, srclen)  # [batch, seq_len]
+        probs, aux = model(src)  # [batch, seq_len]
 
         # Flatten outputs and targets for loss calculation
         probs = probs.view(-1)  # Flatten to shape [batch_size * seq_len]
@@ -185,8 +191,9 @@ def train(train_data, epoch, args: Args):
 
         loss = criterion(probs, tgt)
         # flatten aux also
-        aux_loss = aux_criterion(aux.view(-1).float(), aux_tgt.view(-1))
-        aux_loss = torch.sigmoid(aux_loss)
+        # aux_loss = torch.sigmoid(aux)
+        aux_loss = aux_criterion(aux.view(-1), aux_tgt.view(-1).float())
+        # aux_loss = torch.sigmoid(aux_loss)
 
         # Learnable weight (scaled with exp to keep positive)
         # weight = torch.sigmoid(model.loss_weight)
