@@ -170,19 +170,25 @@ class PositionSelector(nn.Module):
         super(PositionSelector, self).__init__()
         
         self.embedding = nn.Embedding(ntokens, args.emsize)
-        self.pos_linear = PositionalLinear(args.seq_length, args.emsize, args.nhid);
+        #self.embedding.load_state_dict(embedding_weight)
+        #self.embedding.weight.requires_grad = False
 
-        self.fc1 = nn.Linear(args.nhid, args.nhid)  # First hidden layer
+        # self.pos_linear = PositionalLinear(args.seq_length, args.emsize, args.nhid);
+        self.seq_len = args.seq_length
+        self.input_dim = args.seq_length * args.emsize
+
+        self.fc1 = nn.Linear(self.input_dim, args.nhid)  # First hidden layer
         self.fc2 = nn.Linear(args.nhid, args.nhid)  # First hidden layer
-        self.fc3 = nn.Linear(args.nhid, 1)  # Output layer (binary classification)
+        self.fc3 = nn.Linear(args.nhid, args.seq_length)  # Output layer (binary classification)
     
     def forward(self, x):
         embedded = self.embedding(x)
         
-        pos_out = torch.relu(self.pos_linear(embedded))
+        # pos_out = torch.relu(self.pos_linear(embedded))
+        flattened = embedded.view(x.size(0), -1)
 
-        hidden1 = torch.relu(self.fc1(pos_out))  # Apply ReLU activation to first hidden layer
-        hidden2 = torch.relu(self.fc1(hidden1))  # Apply ReLU activation to first hidden layer
+        hidden1 = torch.relu(self.fc1(flattened))  # Apply ReLU activation to first hidden layer
+        hidden2 = torch.relu(self.fc2(hidden1))  # Apply ReLU activation to first hidden layer
         out = self.fc3(hidden2)  # Get the raw output
 
         return out
@@ -245,6 +251,9 @@ def train(train_data, epoch, args: Args):
         batchIdx += 1
 
         if batchIdx % args.log_interval == 0 and batchIdx > 0:
+            print(model.fc3.weight.grad.norm())
+            # print(model.pos_linear.weights.grad.norm())  # if using the einsum version
+
             # for name, param in model.named_parameters():
             #     print(param.requires_grad)
             #     print(name, param.grad.norm() if param.grad is not None else None)

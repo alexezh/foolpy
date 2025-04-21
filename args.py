@@ -16,7 +16,7 @@ class Args:
         self.lr = 1
         self.epochs = 10
         # sequence length
-        self.seq_length = 32
+        self.seq_length = 16
         self.clip = 0.25
         self.log_interval = 500
         self.dry_run = False
