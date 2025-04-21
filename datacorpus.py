@@ -190,7 +190,7 @@ class Corpus(object):
         makeSums(full)
 
         random.seed(a=42)
-        train = random.sample(full, math.floor(len(full) * 0.4))  # Randomly select 3 elements
+        train = random.sample(full, math.floor(len(full) * 0.8))  # Randomly select 3 elements
         train.extend(basic);
   
         full.extend(basic);

@@ -75,7 +75,7 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = True
+runTrain = False
 trainEmbedding = False
 runTest = False
 
