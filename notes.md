@@ -13,4 +13,13 @@ with hot encoding, we limited by indexes. How do I get from hot encode to embedd
 goal is to approximate rule. 
 
 I have sum blah - utility function is cost as number of operations
-we now to a* search using patterns? 
+we now to a* search using patterns? We have context, so we select most probable rule
+our language boils down to give and take
+
+so if we say that our language is limited to few tokens and the rest is variations, we can define
+hierarchical encoding. How ? And then we have 
+
+A, B, C -> X, remember Y
+Y, A, B, C, X - C, remember 
+
+hot encode with categories looks interesting. Which is basically embedding in a very sparse space

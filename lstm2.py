@@ -171,7 +171,7 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
 
     # criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     criterion = nn.BCEWithLogitsLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
     #criterion = nn.CrossEntropyLoss()
 
     return model

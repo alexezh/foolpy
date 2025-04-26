@@ -225,10 +225,10 @@ def emb_hot(indices, num_classes):
     one_hot_tensor = torch.zeros(indices.size(0), indices.size(1), num_classes, device=indices.device)
     
     # Set the positions indicated by indices to 1
-    one_hot_tensor.scatter_(1, indices.unsqueeze(1), 1)
+    one_hot_tensor.scatter_(2, indices.unsqueeze(-1), 1)
     
     index_map = torch.tensor(dictionary.categories).to(indices.device)
     cat_indices = index_map[indices]
-    one_hot_tensor.scatter_(1, cat_indices.unsqueeze(1), 1)
+    one_hot_tensor.scatter_(2, cat_indices.unsqueeze(1), 1)
 
     return one_hot_tensor
