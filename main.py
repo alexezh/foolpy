@@ -75,7 +75,7 @@ def trainEpoc():
         print('-' * 89)
         print('Exiting from training early')
 
-runTrain = True
+runTrain = False
 trainEmbedding = False
 runTest = False
 
@@ -104,6 +104,9 @@ with open(args.save, 'rb') as f:
         model.rnn.flatten_parameters()
 
 lstm2.complete("4 + 5 + 3", args, corpus)
+lstm2.complete("4 + 5", args, corpus)
+lstm2.complete("3 + 8 + 9", args, corpus)
+lstm2.complete("5 + 3 + 8 + 9", args, corpus)
 lstm2.complete("4 + 5 + 3 + 8 + 9", args, corpus)
 lstm2.complete("a + 5 + 3", args, corpus)
 lstm2.complete("3 + a + 3", args, corpus)

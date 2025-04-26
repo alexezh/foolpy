@@ -10,3 +10,7 @@ the result. Which means that we need network per-rule. Which we can try training
 the rule is X, Y, Z
 
 with hot encoding, we limited by indexes. How do I get from hot encode to embedding
+goal is to approximate rule. 
+
+I have sum blah - utility function is cost as number of operations
+we now to a* search using patterns? 

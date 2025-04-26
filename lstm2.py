@@ -170,7 +170,7 @@ def initialize(args: Args, _device, ntokens, embedding_weight):
     # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
     # criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
-    criterion = nn.MSELoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
     #criterion = nn.CrossEntropyLoss()
 
