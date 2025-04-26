@@ -6,7 +6,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from args import Args
-from datacorpus import Corpus
+from datacorpus import Corpus, emb_hot
 
 def binary_concrete(logits, temperature=0.1):
     noise = torch.rand_like(logits)
@@ -140,7 +140,7 @@ class PositionSelector(nn.Module):
     
     def forward(self, x):
         
-        hot = F.one_hot(x, num_classes=self.ntokens).float().to(device)
+        hot = emb_hot(x, num_classes=self.ntokens).float().to(device)
         # embedded = self.embedding(x)
         
         # pos_out = torch.relu(self.pos_linear(embedded))

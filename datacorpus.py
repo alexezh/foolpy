@@ -121,6 +121,7 @@ class Dictionary(object):
     def __init__(self):
         self.word2idx = {}
         self.idx2word = []
+        self.categories = []
 
         self.add_word('<pad>');
         self.add_word('<eos>');
@@ -137,26 +138,34 @@ class Dictionary(object):
         self.add_word('is');
         self.add_word('+');
         self.add_word('-');
-        self.add_word('0');
-        self.add_word('1');
-        self.add_word('2');
-        self.add_word('3');
-        self.add_word('4');
-        self.add_word('5');
-        self.add_word('6');
-        self.add_word('7');
-        self.add_word('8');
-        self.add_word('9');
-        self.add_word('a');
-        self.add_word('b');
-        self.add_word('c');
-        self.add_word('d');
-        self.add_word('e');        
+        self.add_word('0', 'number');
+        self.add_word('1', 'number');
+        self.add_word('2', 'number');
+        self.add_word('3', 'number');
+        self.add_word('4', 'number');
+        self.add_word('5', 'number');
+        self.add_word('6', 'number');
+        self.add_word('7', 'number');
+        self.add_word('8', 'number');
+        self.add_word('9', 'number');
+        self.add_word('a', 'variable');
+        self.add_word('b', 'variable');
+        self.add_word('c', 'variable');
+        self.add_word('d', 'variable');
+        self.add_word('e', 'variable');        
 
-    def add_word(self, word):
+    def add_word(self, word, category = None):
         if word not in self.word2idx:
             self.idx2word.append(word)
-            self.word2idx[word] = len(self.idx2word) - 1
+            wordIdx = len(self.idx2word) - 1
+            self.word2idx[word] = wordIdx
+
+            if(category != None):
+              catIdx = self.word2idx[category]
+              if len(self.categories) <= wordIdx:
+                self.categories.extend([0] * (wordIdx + 1 - len(self.categories)))
+              self.categories[wordIdx] = catIdx
+
         return self.word2idx[word]
 
     def __len__(self):
@@ -210,3 +219,16 @@ class Corpus(object):
         else:
             ids.append(idx);
       return ids
+
+def emb_hot(indices, num_classes):
+    # Create a tensor of shape (N, num_classes) filled with zeros
+    one_hot_tensor = torch.zeros(indices.size(0), indices.size(1), num_classes, device=indices.device)
+    
+    # Set the positions indicated by indices to 1
+    one_hot_tensor.scatter_(1, indices.unsqueeze(1), 1)
+    
+    index_map = torch.tensor(dictionary.categories).to(indices.device)
+    cat_indices = index_map[indices]
+    one_hot_tensor.scatter_(1, cat_indices.unsqueeze(1), 1)
+
+    return one_hot_tensor
