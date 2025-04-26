@@ -4,7 +4,7 @@ class Args:
         self.emsize = 8;
         self.nhead = 8;
         # number of neurons per layer
-        self.nhid = 48;
+        self.nhid = 128;
         self.kernel_size = 3;
         # number of layers
         self.nlayers = 2;
