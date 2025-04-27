@@ -1,10 +1,14 @@
 class Args:
     def __init__(self):
+        self.epochs = 10
+
         # embedding size, 200 default
         self.emsize = 8;
+        self.nhid = 128;
+        self.seq_length = 16
+
         self.nhead = 8;
         # number of neurons per layer
-        self.nhid = 128;
         self.kernel_size = 3;
         # number of layers
         self.nlayers = 2;
@@ -14,9 +18,7 @@ class Args:
         self.model = "Transformer"
         self.batch_size = 64;
         self.lr = 1
-        self.epochs = 10
         # sequence length
-        self.seq_length = 16
         self.clip = 0.25
         self.log_interval = 500
         self.dry_run = False
@@ -26,3 +28,5 @@ class Args:
         self.temperature = 1.0
         self.cuda = False;
         self.mps = True;
+
+args = Args()

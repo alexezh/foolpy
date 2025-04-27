@@ -6,7 +6,12 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from args import Args
+import args
 from datacorpus import Corpus, emb_hot
+import datacorpus
+from torch.utils.data import Dataset, DataLoader
+
+import rels
 
 def binary_concrete(logits, temperature=0.1):
     noise = torch.rand_like(logits)
@@ -255,3 +260,70 @@ def complete(text: str, args: Args, corpus: Corpus):
 #criterion = nn.CrossEntropyLoss(ignore_index=0, weight=loss_weights)  # Ignore padding token
 #optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
+
+def trainEpoc(train_data): 
+    # Loop over epochs.
+    lr = args.lr
+
+    # At any point you can hit Ctrl + C to break out of training early.
+    try:
+        for epoch in range(1, args.epochs+1):
+            epoch_start_time = time.time()
+            val_loss = train(train_data, epoch, args)
+            print('-' * 89)
+            print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '.format(epoch, (time.time() - epoch_start_time),
+                                            val_loss))
+
+        torch.save(model.state_dict(), args.save)
+
+    except KeyboardInterrupt:
+        print('-' * 89)
+        print('Exiting from training early')
+
+corpus = None
+
+def trainLstm2():
+    global corpus
+
+    corpus = datacorpus.Corpus(args.seq_length)
+
+    eval_batch_size = 10;
+    train_data = DataLoader(corpus.train, args.batch_size, shuffle=True, drop_last=True)
+    test_data = DataLoader(corpus.test, args.batch_size, shuffle=True, drop_last=True)
+
+    ###############################################################################
+    # Build the model
+    ###############################################################################
+
+    ntokens = len(corpus.dictionary)
+
+    #model = model.TransformerModel(ntokens, args.emsize, args.nhead, args.nhid, args.nlayers).to(device)
+    # model = model.RNNModel(ntokens, args.emsize, hidden_size=args.nhid, num_layers=args.nlayers, output_size=ntokens).to(device)
+    # model = lstm.Vector2VectorModel(input_dim=args.bptt, vocab_size=ntokens, embedding_dim=args.emsize, hidden_dim=args.bptt*2, output_dim=args.bptt).to(device)
+
+    runTrain = True
+    trainEmbedding = False
+
+    # relModel = rels.initialize();
+    embedding_weight = None
+    if trainEmbedding:
+        embedding_weight = rels.train(args.emsize)
+        torch.save(embedding_weight, args.relsFile)
+    else:
+        with open(args.relsFile, 'rb') as f:
+            embedding_weight = torch.load(f)
+
+    model = initialize(args, device, ntokens, embedding_weight)
+
+    if runTrain:
+        trainEpoc(corpus)
+
+    # Load the best saved model.
+    with open(args.save, 'rb') as f:
+        model.load_state_dict(torch.load(f))
+        
+        # after load the rnn params are not a continuous chunk of memory
+        # this makes them a continuous chunk, and will speed up forward pass
+        # Currently, only rnn model supports flatten_parameters function.
+        if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
+            model.rnn.flatten_parameters()
