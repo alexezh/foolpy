@@ -1,7 +1,8 @@
-from conceptencoder import trainConceptEmbedding
+from conceptencoder import trainWordEmbedding, loadWordEmbedding, testWord
 from device import initDevice
 
 initDevice()
 
-trainConceptEmbedding();
-
+# trainWordEmbedding();
+loadWordEmbedding();
+testWord("hello");
