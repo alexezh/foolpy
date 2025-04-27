@@ -280,17 +280,13 @@ def trainEpoc(train_data):
         print('-' * 89)
         print('Exiting from training early')
 
-corpus = None
+# corpus = None
+corpus = datacorpus.Corpus(args.seq_length)
+eval_batch_size = 10;
+train_data = DataLoader(corpus.train, args.batch_size, shuffle=True, drop_last=True)
+test_data = DataLoader(corpus.test, args.batch_size, shuffle=True, drop_last=True)
 
-def trainLstm2():
-    global corpus
-
-    corpus = datacorpus.Corpus(args.seq_length)
-
-    eval_batch_size = 10;
-    train_data = DataLoader(corpus.train, args.batch_size, shuffle=True, drop_last=True)
-    test_data = DataLoader(corpus.test, args.batch_size, shuffle=True, drop_last=True)
-
+def runLstm2():
     ###############################################################################
     # Build the model
     ###############################################################################
@@ -327,3 +323,12 @@ def trainLstm2():
         # Currently, only rnn model supports flatten_parameters function.
         if args.model in ['RNN_TANH', 'RNN_RELU', 'LSTM', 'GRU']:
             model.rnn.flatten_parameters()
+
+    complete("4 + 5 + 3", args, corpus)
+    complete("4 + 5", args, corpus)
+    complete("3 + 8 + 9", args, corpus)
+    complete("5 + 3 + 8 + 9", args, corpus)
+    complete("4 + 5 + 3 + 8 + 9", args, corpus)
+    complete("a + 5 + 3", args, corpus)
+    complete("3 + a + 3", args, corpus)
+
