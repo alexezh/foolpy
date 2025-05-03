@@ -173,17 +173,6 @@ def makeRels(o: List):
     o.append(f"{x} => object")
 
 def makeCount(o: List):
-  # o.append("count => cat => 1")
-  # o.append("count => cat cat => 2")
-  # o.append("count => cat cat cat => 3")
-  # o.append("count => cat dog cat => 3")
-  # o.append("count cat => cat cat cat => 3")
-  # o.append("count dog => cat dog cat => 1")
-  # o.append("count cat => cat dog cat => 2")
-
-  # we need logic to go through and match
-  # we've been through this, we can optimize count by comparing code with loop
-  # so what I need is model which just counts
   o.append("cat >> count any => 1")
   o.append("cat cat >> count any => 2")
   o.append("cat cat cat >> count any => 3")
@@ -192,12 +181,31 @@ def makeCount(o: List):
   o.append("cat cat dog >> count dog => 1")
   o.append("cat cat dog >> count cat => 2")
 
-  #
+  # o.append("cat(1) cat(1) cat(2) >> found-similar => c")
+
+  # count is complex op
+  # go through world, load instance, compare, tag
+  # key is to enable ML optimization of code; sequential code can be based on instructions
+  # we learn finding common figures by training visual cortex. So we can assume that tagging
+  # is a low level function which is optimized. We can just use it as tag(x)
+  # this can be further optimized. Such as initial map(x => if has(x, prop) tag(x)) can be optimized on NN
+
+  # first thing I need is match 
+  # we have instance of dog, which is some vector , dog is object with dog(o) = true, also mammal(o) = trie
+  # mammal(0) => for each prop, is mammal(prop) => return true, recursion
+  
+  # count any => for x in objects: if $match(x): $action(x) 
+
+  # count any = 
+  # while world
+  #     have(untagged). select_first, tag
 
   # find - foreach x *match
   # match is just a selection based on context
   # match - even, isdog(x), iscat(), isany(), legs(x) = 3
   
+
+
   # last was encoding objects with properties
   
 
