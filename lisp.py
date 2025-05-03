@@ -57,6 +57,21 @@ def eval_(x, env):
         return env[x]
     elif not isinstance(x, list):
         return x
+    elif x[0] == 'if':
+      if len(x) == 3:
+          _, test, conseq = x
+          test_result = eval_(test, env)
+          if test_result:
+              return eval_(conseq, env)
+          else:
+              return None  # no 'else', return None
+      elif len(x) == 4:
+          _, test, conseq, alt = x
+          test_result = eval_(test, env)
+          if test_result:
+              return eval_(conseq, env)
+          else:
+              return eval_(alt, env)
     elif x[0] == 'define':
         (_, var, expr) = x
         env[var] = eval_(expr, env)
@@ -69,17 +84,32 @@ def eval_(x, env):
     else:
         proc = eval_(x[0], env)
         args = [eval_(arg, env) for arg in x[1:]]
-        return proc(*args)
+        return proc(env, *args)
 
-add_external("match", meta_match)
+def exec_(code):
+  tokens = tokenize(code)
+  ast = parse(tokens)
+  eval_(ast, global_env)
 
 # returns function 
-def meta_match():
-    # 
+def meta_match(env, obj):
+  return True
 
-def meta_action():
-    # 
-    
+def meta_action(env, obj):
+  print("Hello World")
+
+def for_each(env, func, list):
+  for arg in list(env):
+      func(env, arg)
+
+def objects(env):
+  return [1, 2]
+
+add_external("for-each", for_each)
+add_external("mmatch", meta_match)
+add_external("maction", meta_action)
+add_external("objects", objects)
+
 # Example usage
 # if __name__ == '__main__':
 #     while True:
