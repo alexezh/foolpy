@@ -166,21 +166,48 @@ def makeDerived(o: List[torch.tensor]):
   exp.append("2 + 1 => 3")
 
 
-def tempDerived(o: List):
-  o.append("1 => #1")
-  o.append("2 => #2")
-  o.append("3 => #3")
-  o.append("#1 => 1")
-  o.append("#2 => 2")
-  o.append("#3 => 3")
-  o.append(f"#{a} + 1 => #{a + 1}")
-  for a in range(4, 10):
-    o.append(f"#{a} + 1 => #{a + 1}")
+objects = ["cat", "dog", "apple", "orange", "car"];
 
-  for a in range(1, 9):
-    o.append(f"#{a} => number")
-    # with this lookup of 4 will bring next 3 and 3 + 1
-    o.append(f"next #{a} => #{a + 1}")
+def makeRels(o: List):
+  for x in objects:
+    o.append(f"{x} => object")
+
+def makeCount(o: List):
+  # o.append("count => cat => 1")
+  # o.append("count => cat cat => 2")
+  # o.append("count => cat cat cat => 3")
+  # o.append("count => cat dog cat => 3")
+  # o.append("count cat => cat cat cat => 3")
+  # o.append("count dog => cat dog cat => 1")
+  # o.append("count cat => cat dog cat => 2")
+
+  # we need logic to go through and match
+  # we've been through this, we can optimize count by comparing code with loop
+  # so what I need is model which just counts
+  o.append("cat >> count any => 1")
+  o.append("cat cat >> count any => 2")
+  o.append("cat cat cat >> count any => 3")
+  o.append("cat cat cat >> count cat => 3")
+  o.append("cat cat dog >> count any => 3")
+  o.append("cat cat dog >> count dog => 1")
+  o.append("cat cat dog >> count cat => 2")
+
+  #
+
+  # find - foreach x *match
+  # match is just a selection based on context
+  # match - even, isdog(x), iscat(), isany(), legs(x) = 3
+  
+  # last was encoding objects with properties
+  
+
+  # count pair, triplet
+
+  # object, attrs
+  # we can make every register to be 4*42, 
+  # then we have stack of actions, we start with count
+  # at count we lookup 
+
 
     # o.append(f"#{a} + #2 => #{a + 2}")
     # this goes into memory territory, We can 

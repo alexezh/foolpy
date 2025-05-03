@@ -1,4 +1,4 @@
-from conceptencoder import trainWordEmbedding, loadWordEmbedding, testWord
+from wordencoder import trainWordEmbedding, loadWordEmbedding, testWord
 from device import initDevice
 
 initDevice()
