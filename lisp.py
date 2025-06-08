@@ -118,6 +118,7 @@ def for_each(env, args: List[Any]):
 def objects(env):
   return [1, 2]
 
+# run criteris function
 def msolve(env, args):
     func, crit = args
     return crit(env)

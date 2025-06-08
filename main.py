@@ -61,6 +61,34 @@ result = exec_("""
   )
 )""")
 
+# we are building A* algorithm
+# which starts with random walk of approaches
+# and makes weighted graph based on past experience
+# so we are talking about X * W => F. 
+
+# ---- above makes sense, it is question of applying pattern such as 
+# treat as variable on a problem based on past experience
+# so I need a language which is concatenable? 
+# with a*, I need to look at problem as - sequence -> op -> sequence
+# where first operations are random.. But I also need way to internalize
+# the goal and make sub-goals. This mean making less defined steps in a* as goal
+# and going there. But is it really sub-goal, or we have internal pattern X which 
+# we apply without having word for it; a pattern can fail which is the same as with
+# other patterns. And then we can say - if X works, we then do Y and Z because we 
+# learned about such big steps. We then work on reaching X. 
+
+# so the requirement for runtime is that it is fuzzy. 
+# 
+
+
+# goal in mnemonic is
+# objects is a number, or ax + by + c, or axy + x + y + c
+# we learned it by training as these were good answers
+# and we learned canonical form. so match is about breaking things apart
+# match(objects, target)
+# goal - either number, or variable + number
+# https://rdweb.wvd.microsoft.com/api/arm/feeddiscovery
+
 initDevice()
 
 # trainWordEmbedding();
