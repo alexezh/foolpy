@@ -29,11 +29,16 @@ from device import initDevice
 # operations can be either one or + which is semi greedy; on each step we might chhoise  different
 # decision based on some parameter
 #
-class Action(object):
-  def __init__(self):
-    self.id = "hhh"
+# class Action(object):
+#   def __init__(self):
+#     self.id = "hhh"
+#   def apply(self):
+    
 
 # action makes execution plan which is probabilistic in nature
+# which is similar to Haskel. We get probabilities based on experience, estimate the result
+# and actually perform computation when we reached the goal, or get into unknown
+
 
 initDevice()
 
