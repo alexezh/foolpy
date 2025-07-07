@@ -29,7 +29,7 @@ def a_star_search(start_tokens):
 
 # Example usage:
 if __name__ == "__main__":
-    expr_str = "3 + x + y - 3"
+    expr_str = "3 + 4 + x + y - 3"
     expr = parse_expression(expr_str)
     result = a_star_search(expr)
     for step in result:

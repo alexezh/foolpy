@@ -44,10 +44,10 @@ def is_goal(tokens):
                 return True
         
         i = 0
-        # Optional leading coefficient
+        # Optional leading coefficient or number
         if i < len(tokens) and is_number(tokens[i]):
             i += 1
-            if i < len(tokens) and tokens[i] in ['*', '/', '-']:
+            if i < len(tokens) and tokens[i] in ['*', '/', '-', '+']:
                 i += 1
             else:
                 # Just a number, valid goal
@@ -69,7 +69,7 @@ def is_goal(tokens):
             
             # Optional operation for next variable/number
             if i < len(tokens):
-                if tokens[i] in ['*', '/', '-']:
+                if tokens[i] in ['*', '/', '-', '+']:
                     i += 1
                 else:
                     # No more operations, should be end
