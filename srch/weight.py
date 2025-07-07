@@ -1,4 +1,5 @@
 from goal import is_goal
+from token import Token, TRef
 
 
 def heuristic(tokens):

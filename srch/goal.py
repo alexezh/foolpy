@@ -1,4 +1,5 @@
 from parser import is_number, is_variable
+from token import Token, TRef
 import re
 
 

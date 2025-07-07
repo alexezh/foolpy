@@ -4,10 +4,11 @@ import re
 from actions import apply_mul, apply_parenthesis, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup, apply_sub_to_add
 from goal import is_goal
 from parser import is_number, is_variable, parse_expression
+from token import Token, TRef
 from weight import heuristic
 
 
-ACTIONS = [apply_mul, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup, apply_sub_to_add, apply_parenthesis]
+ACTIONS = [apply_sum, apply_sub, apply_mul, apply_div, apply_cancel, apply_cleanup, apply_sub_to_add, apply_parenthesis]
 
 def a_star_search(start_tokens):
     heap = []

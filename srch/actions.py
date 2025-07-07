@@ -1,5 +1,14 @@
 # Actions
 from parser import is_number, is_variable
+from token import Token, TRef
+
+
+def create_tref(text: str, source_tref: TRef = None):
+    """Helper to create a new TRef with computed text"""
+    if source_tref:
+        return TRef.from_text(text, source_tref.token)
+    else:
+        return TRef.from_text(text)
 
 
 def apply_mul(tokens):
@@ -27,10 +36,14 @@ def apply_mul(tokens):
             left, right = tokens[i-1], tokens[i+1]
             # number * variable or variable * number
             if is_number(left) and is_variable(right):
-                new_tokens = tokens[:i-1] + [str(int(left)) + right] + tokens[i+2:]
+                combined_text = str(int(str(left))) + str(right)
+                new_tref = create_tref(combined_text, left)
+                new_tokens = tokens[:i-1] + [new_tref] + tokens[i+2:]
                 return new_tokens
             if is_variable(left) and is_number(right):
-                new_tokens = tokens[:i-1] + [str(int(right)) + left] + tokens[i+2:]
+                combined_text = str(int(str(right))) + str(left)
+                new_tref = create_tref(combined_text, left)
+                new_tokens = tokens[:i-1] + [new_tref] + tokens[i+2:]
                 return new_tokens
             
             # Check for variable * variable patterns (including powers)
@@ -55,7 +68,9 @@ def apply_mul(tokens):
             
             # number * number
             if is_number(left) and is_number(right):
-                new_tokens = tokens[:i-1] + [str(int(left)*int(right))] + tokens[i+2:]
+                result_value = int(str(left)) * int(str(right))
+                result_tref = create_tref(str(result_value), left)
+                new_tokens = tokens[:i-1] + [result_tref] + tokens[i+2:]
                 return new_tokens
     return None
 
