@@ -1,5 +1,6 @@
-from sympy import re
 
+
+import re
 
 def is_number(token):
     return token.isdigit()
@@ -11,12 +12,52 @@ def is_coeff_var(token):
     return re.fullmatch(r'\d+[a-zA-Z]', token) is not None
 
 def parse_expression(expr: str) -> list[str]:
-    tokens = re.findall(r'\d+|[a-zA-Z]+|[()+\-*/^]', expr.replace(' ', ''))
-    processed = []
-    for token in tokens:
-        if is_coeff_var(token):
-            num = ''.join(filter(str.isdigit, token))
-            var = ''.join(filter(str.isalpha, token))
-            processed.extend([num, '*', var])
+    """Standard tokenizer that processes character by character"""
+    tokens = []
+    i = 0
+    expr = expr.replace(' ', '')  # Remove whitespace
+    
+    while i < len(expr):
+        char = expr[i]
+        
+        # Handle numbers (including multi-digit)
+        if char.isdigit():
+            num_str = ''
+            while i < len(expr) and expr[i].isdigit():
+                num_str += expr[i]
+                i += 1
+            tokens.append(num_str)
+            continue
+        
+        # Handle variables (single letters)
+        elif char.isalpha():
+            tokens.append(char)
+            i += 1
+            continue
+        
+        # Handle operators and parentheses
+        elif char in '+-*/^()':
+            tokens.append(char)
+            i += 1
+            continue
+        
         else:
-            processed.append(token)
+            # Skip unknown characters
+            i += 1
+    
+    # Post-process to handle coefficient-variable combinations like "2x"
+    processed = []
+    i = 0
+    while i < len(tokens):
+        if (i + 1 < len(tokens) and 
+            is_number(tokens[i]) and 
+            is_variable(tokens[i + 1])):
+            # Check if they were adjacent in the original expression (no operator between)
+            # This is a coefficient-variable pair like "2x"
+            processed.extend([tokens[i], '*', tokens[i + 1]])
+            i += 2
+        else:
+            processed.append(tokens[i])
+            i += 1
+    
+    return processed

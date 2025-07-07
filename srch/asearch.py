@@ -1,20 +1,13 @@
 import heapq
 import re
 
-from srch.actions import apply_mul, apply_parenthesis, apply_sum, apply_sub, apply_div
-from srch.goal import is_goal
-from srch.parser import is_number, is_variable, parse_expression
+from actions import apply_mul, apply_parenthesis, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup
+from goal import is_goal
+from parser import is_number, is_variable, parse_expression
+from weight import heuristic
 
 
-ACTIONS = [apply_mul, apply_sum, apply_sub, apply_div, apply_parenthesis]
-
-def heuristic(tokens):
-    # Heuristic: prefer fewer tokens, but account for goal structure
-    # Goal structures with multiple variables are acceptable
-    if is_goal(tokens):
-        return 0
-    # Simple heuristic: number of tokens left
-    return len(tokens)
+ACTIONS = [apply_mul, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup, apply_parenthesis]
 
 def a_star_search(start_tokens):
     heap = []
@@ -36,7 +29,7 @@ def a_star_search(start_tokens):
 
 # Example usage:
 if __name__ == "__main__":
-    expr_str = "x + y + x"
+    expr_str = "3 + x + y - 3"
     expr = parse_expression(expr_str)
     result = a_star_search(expr)
     for step in result:

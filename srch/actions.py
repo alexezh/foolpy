@@ -1,5 +1,5 @@
 # Actions
-from srch.parser import is_number, is_variable
+from parser import is_number, is_variable
 
 
 def apply_mul(tokens):
@@ -255,6 +255,100 @@ def apply_div(tokens):
                     # x^4 / x^2 = x^2 (produce separate tokens)
                     new_tokens = tokens[:i-1] + [left_var, '^', str(power_diff)] + tokens[right_end:]
                 return new_tokens
+    return None
+
+def apply_cancel(tokens):
+    # Cancel out same numbers/variables with opposite signs: x + 3 - 3 = x, 5 + x - x = 5
+    
+    # Handle first term (implicitly positive) vs terms with explicit operators
+    if len(tokens) >= 3:
+        first_term = tokens[0]
+        # Look for the same term later with a minus sign
+        for i in range(1, len(tokens)):
+            if (i + 1 < len(tokens) and 
+                tokens[i] == '-' and 
+                tokens[i + 1] == first_term):
+                # Cancel out: remove first term and the "- term" pair
+                new_tokens = tokens[1:i] + tokens[i+2:]
+                return new_tokens
+    
+    # Handle terms with explicit operators
+    for i in range(len(tokens)):
+        if tokens[i] in ['+', '-']:
+            # Look for patterns like: ... + num ... - num or ... - num ... + num
+            # Also handle variables: ... + x ... - x
+            
+            # Get the term after the current operator
+            if i + 1 < len(tokens):
+                current_term = tokens[i + 1]
+                current_op = tokens[i]
+                
+                # Search for the opposite pattern in the rest of the expression
+                for j in range(i + 2, len(tokens)):
+                    if j + 1 < len(tokens) and tokens[j] in ['+', '-']:
+                        next_term = tokens[j + 1]
+                        next_op = tokens[j]
+                        
+                        # Check if we have the same term with opposite operations
+                        if (current_term == next_term and 
+                            current_op != next_op and 
+                            current_op in ['+', '-'] and 
+                            next_op in ['+', '-']):
+                            
+                            # Cancel out both terms
+                            # Remove the second occurrence first (higher index)
+                            new_tokens = tokens[:j] + tokens[j+2:]
+                            # Then remove the first occurrence (lower index)
+                            new_tokens = new_tokens[:i] + new_tokens[i+2:]
+                            return new_tokens
+                
+                # Also check for patterns with powers: x^2 + 3 - 3 = x^2
+                if (i + 3 < len(tokens) and 
+                    tokens[i + 2] == '^' and 
+                    is_number(tokens[i + 3])):
+                    
+                    # Current term is variable^power
+                    current_var_power = tokens[i + 1:i + 4]  # [x, ^, 2]
+                    
+                    for j in range(i + 4, len(tokens)):
+                        if (j + 3 < len(tokens) and 
+                            tokens[j] in ['+', '-'] and 
+                            tokens[j + 2] == '^' and 
+                            is_number(tokens[j + 3])):
+                            
+                            next_var_power = tokens[j + 1:j + 4]  # [x, ^, 2]
+                            next_op = tokens[j]
+                            
+                            # Check if same variable^power with opposite operations
+                            if (current_var_power == next_var_power and 
+                                current_op != next_op and 
+                                current_op in ['+', '-'] and 
+                                next_op in ['+', '-']):
+                                
+                                # Cancel out both terms
+                                new_tokens = tokens[:j] + tokens[j+4:]
+                                new_tokens = new_tokens[:i] + new_tokens[i+4:]
+                                return new_tokens
+    return None
+
+def apply_cleanup(tokens):
+    # Clean up leading operators and other formatting issues
+    if not tokens:
+        return None
+    
+    # Remove leading + operator
+    if tokens[0] == '+':
+        return tokens[1:]
+    
+    # Remove leading - operator and negate the first term if it's a number
+    if tokens[0] == '-' and len(tokens) > 1:
+        if is_number(tokens[1]):
+            # Convert -3 to negative number representation
+            return ['-' + tokens[1]] + tokens[2:]
+        else:
+            # For variables, keep the minus but this might need special handling
+            return tokens
+    
     return None
 
 def apply_parenthesis(tokens):

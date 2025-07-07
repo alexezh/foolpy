@@ -1,4 +1,4 @@
-from srch.parser import is_number, is_variable
+from parser import is_number, is_variable
 import re
 
 
@@ -27,6 +27,13 @@ def is_goal(tokens):
             left, right = tokens[0], tokens[2]
             # number / number or variable / variable are valid goals
             if (is_number(left) and is_number(right)) or (is_variable(left) and is_variable(right)):
+                return True
+        
+        # Check for addition patterns like [x, +, y] 
+        if len(tokens) == 3 and tokens[1] == '+':
+            left, right = tokens[0], tokens[2]
+            # Different variables or numbers with addition can be valid goals
+            if (is_number(left) and is_number(right)) or (is_variable(left) and is_variable(right) and left != right):
                 return True
         
         # Check for subtraction patterns like [x, -, y] or [5, -, 3]
