@@ -1,14 +1,18 @@
 import heapq
 import re
 
-from srch.actions import apply_mul, apply_parenthesis, apply_sum
+from srch.actions import apply_mul, apply_parenthesis, apply_sum, apply_sub, apply_div
 from srch.goal import is_goal
 from srch.parser import is_number, is_variable, parse_expression
 
 
-ACTIONS = [apply_mul, apply_sum, apply_parenthesis]
+ACTIONS = [apply_mul, apply_sum, apply_sub, apply_div, apply_parenthesis]
 
 def heuristic(tokens):
+    # Heuristic: prefer fewer tokens, but account for goal structure
+    # Goal structures with multiple variables are acceptable
+    if is_goal(tokens):
+        return 0
     # Simple heuristic: number of tokens left
     return len(tokens)
 
