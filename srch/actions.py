@@ -79,39 +79,12 @@ def apply_sum(tokens):
                 return var, 1, start_idx + 1
         return None, None, start_idx
     
-    def parse_coefficient_variable(token):
-        """Parse a token like '3x' or '2x^3' and return (coefficient, variable, power)"""
-        if token and len(token) > 1:
-            # Check for patterns like '3x' or '2x^3'
-            import re
-            match = re.match(r'(\d+)([a-zA-Z])(\^(\d+))?', token)
-            if match:
-                coeff = int(match.group(1))
-                var = match.group(2)
-                power = int(match.group(4)) if match.group(4) else 1
-                return coeff, var, power
-        return None, None, None
-    
     for i in range(1, len(tokens)-1):
         if tokens[i] == '+':
             left, right = tokens[i-1], tokens[i+1]
             # number + number
             if is_number(left) and is_number(right):
                 new_tokens = tokens[:i-1] + [str(int(left)+int(right))] + tokens[i+2:]
-                return new_tokens
-            
-            # Check for coefficient-variable patterns first
-            left_coeff, left_var, left_power = parse_coefficient_variable(left)
-            right_coeff, right_var, right_power = parse_coefficient_variable(right)
-            
-            # Handle coefficient variables like 3x + 2x = 5x
-            if left_coeff and right_coeff and left_var == right_var and left_power == right_power:
-                total_coeff = left_coeff + right_coeff
-                if left_power == 1:
-                    result = str(total_coeff) + left_var
-                else:
-                    result = str(total_coeff) + left_var + '^' + str(left_power)
-                new_tokens = tokens[:i-1] + [result] + tokens[i+2:]
                 return new_tokens
             
             # Handle pure variables with powers (produce separate tokens)
@@ -156,19 +129,6 @@ def apply_sub(tokens):
                 return var, 1, start_idx + 1
         return None, None, start_idx
     
-    def parse_coefficient_variable(token):
-        """Parse a token like '3x' or '2x^3' and return (coefficient, variable, power)"""
-        if token and len(token) > 1:
-            # Check for patterns like '3x' or '2x^3'
-            import re
-            match = re.match(r'(\d+)([a-zA-Z])(\^(\d+))?', token)
-            if match:
-                coeff = int(match.group(1))
-                var = match.group(2)
-                power = int(match.group(4)) if match.group(4) else 1
-                return coeff, var, power
-        return None, None, None
-    
     for i in range(1, len(tokens)-1):
         if tokens[i] == '-':
             left, right = tokens[i-1], tokens[i+1]
@@ -176,27 +136,6 @@ def apply_sub(tokens):
             if is_number(left) and is_number(right):
                 result = int(left) - int(right)
                 new_tokens = tokens[:i-1] + [str(result)] + tokens[i+2:]
-                return new_tokens
-            
-            # Check for coefficient-variable patterns first
-            left_coeff, left_var, left_power = parse_coefficient_variable(left)
-            right_coeff, right_var, right_power = parse_coefficient_variable(right)
-            
-            # Handle coefficient variables like 3x - 2x = x
-            if left_coeff and right_coeff and left_var == right_var and left_power == right_power:
-                total_coeff = left_coeff - right_coeff
-                if total_coeff == 0:
-                    new_tokens = tokens[:i-1] + ['0'] + tokens[i+2:]
-                elif total_coeff == 1 and left_power == 1:
-                    new_tokens = tokens[:i-1] + [left_var] + tokens[i+2:]
-                elif total_coeff == 1:
-                    new_tokens = tokens[:i-1] + [left_var, '^', str(left_power)] + tokens[i+2:]
-                else:
-                    if left_power == 1:
-                        result = str(total_coeff) + left_var
-                    else:
-                        result = str(total_coeff) + left_var + '^' + str(left_power)
-                    new_tokens = tokens[:i-1] + [result] + tokens[i+2:]
                 return new_tokens
             
             # Handle pure variables with powers (produce separate tokens)
@@ -259,76 +198,87 @@ def apply_div(tokens):
 
 def apply_cancel(tokens):
     # Cancel out same numbers/variables with opposite signs: x + 3 - 3 = x, 5 + x - x = 5
+    # But avoid canceling terms that are part of multiplication operations
     
-    # Handle first term (implicitly positive) vs terms with explicit operators
-    if len(tokens) >= 3:
-        first_term = tokens[0]
-        # Look for the same term later with a minus sign
-        for i in range(1, len(tokens)):
-            if (i + 1 < len(tokens) and 
-                tokens[i] == '-' and 
-                tokens[i + 1] == first_term):
-                # Cancel out: remove first term and the "- term" pair
-                new_tokens = tokens[1:i] + tokens[i+2:]
-                return new_tokens
+    def is_part_of_multiplication(tokens, index):
+        """Check if a term at given index is part of a multiplication"""
+        # Check if previous token is *
+        if index > 0 and tokens[index - 1] == '*':
+            return True
+        # Check if next token is *
+        if index + 1 < len(tokens) and tokens[index + 1] == '*':
+            return True
+        return False
     
-    # Handle terms with explicit operators
+    # Look for addition and subtraction of the same term to cancel out
     for i in range(len(tokens)):
-        if tokens[i] in ['+', '-']:
-            # Look for patterns like: ... + num ... - num or ... - num ... + num
-            # Also handle variables: ... + x ... - x
+        if tokens[i] == '+' and i + 1 < len(tokens):
+            # Found a + term, check if it's not part of multiplication
+            add_term = tokens[i + 1]
+            if is_part_of_multiplication(tokens, i + 1):
+                continue
             
-            # Get the term after the current operator
-            if i + 1 < len(tokens):
-                current_term = tokens[i + 1]
-                current_op = tokens[i]
-                
-                # Search for the opposite pattern in the rest of the expression
-                for j in range(i + 2, len(tokens)):
-                    if j + 1 < len(tokens) and tokens[j] in ['+', '-']:
-                        next_term = tokens[j + 1]
-                        next_op = tokens[j]
-                        
-                        # Check if we have the same term with opposite operations
-                        if (current_term == next_term and 
-                            current_op != next_op and 
-                            current_op in ['+', '-'] and 
-                            next_op in ['+', '-']):
-                            
-                            # Cancel out both terms
-                            # Remove the second occurrence first (higher index)
-                            new_tokens = tokens[:j] + tokens[j+2:]
-                            # Then remove the first occurrence (lower index)
-                            new_tokens = new_tokens[:i] + new_tokens[i+2:]
-                            return new_tokens
-                
-                # Also check for patterns with powers: x^2 + 3 - 3 = x^2
-                if (i + 3 < len(tokens) and 
-                    tokens[i + 2] == '^' and 
-                    is_number(tokens[i + 3])):
+            # Search for corresponding subtraction
+            for j in range(i + 2, len(tokens)):
+                if (tokens[j] == '-' and 
+                    j + 1 < len(tokens) and 
+                    tokens[j + 1] == add_term and
+                    not is_part_of_multiplication(tokens, j + 1)):
                     
-                    # Current term is variable^power
-                    current_var_power = tokens[i + 1:i + 4]  # [x, ^, 2]
+                    # Found matching + term and - term, cancel them out
+                    # Remove the second occurrence first (higher index)
+                    new_tokens = tokens[:j] + tokens[j+2:]
+                    # Then remove the first occurrence (lower index)  
+                    new_tokens = new_tokens[:i] + new_tokens[i+2:]
+                    return new_tokens
+    
+    # Also look for subtraction followed by addition of the same term
+    for i in range(len(tokens)):
+        if tokens[i] == '-' and i + 1 < len(tokens):
+            # Found a - term, check if it's not part of multiplication
+            sub_term = tokens[i + 1]
+            if is_part_of_multiplication(tokens, i + 1):
+                continue
+            
+            # Search for corresponding addition
+            for j in range(i + 2, len(tokens)):
+                if (tokens[j] == '+' and 
+                    j + 1 < len(tokens) and 
+                    tokens[j + 1] == sub_term and
+                    not is_part_of_multiplication(tokens, j + 1)):
                     
-                    for j in range(i + 4, len(tokens)):
-                        if (j + 3 < len(tokens) and 
-                            tokens[j] in ['+', '-'] and 
-                            tokens[j + 2] == '^' and 
-                            is_number(tokens[j + 3])):
-                            
-                            next_var_power = tokens[j + 1:j + 4]  # [x, ^, 2]
-                            next_op = tokens[j]
-                            
-                            # Check if same variable^power with opposite operations
-                            if (current_var_power == next_var_power and 
-                                current_op != next_op and 
-                                current_op in ['+', '-'] and 
-                                next_op in ['+', '-']):
-                                
-                                # Cancel out both terms
-                                new_tokens = tokens[:j] + tokens[j+4:]
-                                new_tokens = new_tokens[:i] + new_tokens[i+4:]
-                                return new_tokens
+                    # Found matching - term and + term, cancel them out
+                    # Remove the second occurrence first (higher index)
+                    new_tokens = tokens[:j] + tokens[j+2:]
+                    # Then remove the first occurrence (lower index)
+                    new_tokens = new_tokens[:i] + new_tokens[i+2:]
+                    return new_tokens
+    
+    # Handle case where first term is implicitly positive
+    if len(tokens) >= 3 and not tokens[0] in ['+', '-']:
+        first_term = tokens[0]
+        if not is_part_of_multiplication(tokens, 0):
+            # Look for the same term later with a minus sign
+            for i in range(1, len(tokens)):
+                if (i + 1 < len(tokens) and 
+                    tokens[i] == '-' and 
+                    tokens[i + 1] == first_term and
+                    not is_part_of_multiplication(tokens, i + 1)):
+                    # Cancel out: remove first term and the "- term" pair
+                    new_tokens = tokens[1:i] + tokens[i+2:]
+                    return new_tokens
+    
+    return None
+
+def apply_sub_to_add(tokens):
+    # Convert subtraction to addition with negative numbers: x - 3 becomes x + (-3)
+    for i in range(1, len(tokens)):
+        if tokens[i] == '-' and i + 1 < len(tokens):
+            next_token = tokens[i + 1]
+            if is_number(next_token):
+                # Convert "- 3" to "+ -3"
+                new_tokens = tokens[:i] + ['+', '-' + next_token] + tokens[i+2:]
+                return new_tokens
     return None
 
 def apply_cleanup(tokens):

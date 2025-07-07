@@ -1,13 +1,13 @@
 import heapq
 import re
 
-from actions import apply_mul, apply_parenthesis, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup
+from actions import apply_mul, apply_parenthesis, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup, apply_sub_to_add
 from goal import is_goal
 from parser import is_number, is_variable, parse_expression
 from weight import heuristic
 
 
-ACTIONS = [apply_mul, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup, apply_parenthesis]
+ACTIONS = [apply_mul, apply_sum, apply_sub, apply_div, apply_cancel, apply_cleanup, apply_sub_to_add, apply_parenthesis]
 
 def a_star_search(start_tokens):
     heap = []
@@ -29,7 +29,8 @@ def a_star_search(start_tokens):
 
 # Example usage:
 if __name__ == "__main__":
-    expr_str = "3 + 4 + x + y - 3"
+    # expr_str = "-4 + 3 * 4 + x + y - 3"
+    expr_str = "4 + 3 * 4"
     expr = parse_expression(expr_str)
     result = a_star_search(expr)
     for step in result:
