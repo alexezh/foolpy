@@ -1,3 +1,5 @@
-FoolPy is an experimental small transformer trained on arithmetics
+FoolPy is an experimental framework exploring how computation can be decomposed into many MicroLMs—tiny language models that are built dynamically by the system as needed. The concept draws inspiration from Lisp, where much of the language is defined in terms of itself.
 
-The uber idea is to break computation into many MicroLMs which are build on demand by the system; similar how Lisp is done mostly on itself. For initial step, it makes micro LM which computes next operation for computing arithmetic. The goal is to make combination of two microLMs be 100% reliable. 
+The project began as an attempt to train a small transformer model to perform basic arithmetic within a minimal vocabulary. While the initial approach didn’t succeed as expected, it led to a new paradigm that blends ideas from machine learning and Lisp-style compositional computation.
+
+In its current form, FoolPy focuses on constructing MicroLMs that can compute the next operation in a sequence of arithmetic computations. The long-term goal is to achieve fully reliable composition, where combinations of two or more MicroLMs produce deterministic, correct results—paving the way for self-organizing, interpretable computational systems.
